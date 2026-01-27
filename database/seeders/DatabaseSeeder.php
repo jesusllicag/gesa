@@ -13,18 +13,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crear usuario de prueba
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
         // Ejecutar seeders de datos de referencia
         $this->call([
-            AssetStatusSeeder::class,
-            MaintenanceTypeSeeder::class,
-            CategorySeeder::class,
-            AreaSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

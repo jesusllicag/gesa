@@ -13,10 +13,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { activos, dashboard } from '@/routes';
+import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 
 import AppLogo from './app-logo';
+
+import { index as indexPolicies } from '@/routes/policies';
+import { index as indexUsers } from '@/routes/users';
 
 const mainNavItems: NavItem[] = [
     {
@@ -26,7 +29,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Activos',
-        href: activos(),
+        href: '/',
         icon: Box,
     },
 ];
@@ -34,12 +37,12 @@ const mainNavItems: NavItem[] = [
 const footerNavItems: NavItem[] = [
     {
         title: 'Usuarios',
-        href: 'https://github.com/laravel/react-starter-kit',
+        href: indexUsers(),
         icon: User,
     },
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
+        title: 'Politicas',
+        href: indexPolicies(),
         icon: Folder,
     },
     {
