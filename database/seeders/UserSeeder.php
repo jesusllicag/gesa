@@ -19,17 +19,35 @@ class UserSeeder extends Seeder
     {
         $user = User::factory()->create(['name' => 'Test User', 'email' => 'test@example.com']);
 
-        $adminRole = Role::create(['name' => 'admin']);
-        $managerRole = Role::create(['name' => 'manager']);
+        $adminRole = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $managerRole = Role::create(['name' => 'Manager', 'slug' => 'manager']);
 
         //Users
-        $listUSer = Permission::create(['name' => 'list.users']);
-        $createUser = Permission::create(['name' => 'create.users']);
-        $updateUser = Permission::create(['name' => 'update.users']);
-        $deleteUser = Permission::create(['name' => 'delete.users']);
+        $listUSer = Permission::create(['name' => 'Listar Usuarios', 'slug' => 'list.users']);
+        $createUser = Permission::create(['name' => 'Crear Usuarios', 'slug' => 'create.users']);
+        $updateUser = Permission::create(['name' => 'Actualizar Usuarios', 'slug' => 'update.users']);
+        $deleteUser = Permission::create(['name' => 'Eliminar Usuarios', 'slug' => 'delete.users']);
 
         $adminRole->givePermissionTo($listUSer, $createUser, $updateUser, $deleteUser);
         $managerRole->givePermissionTo($listUSer, $createUser, $updateUser);
+
+        //Servers
+        $listServer = Permission::create(['name' => 'Listar Servidores', 'slug' => 'list.servers']);
+        $createServer = Permission::create(['name' => 'Crear Servidores', 'slug' => 'create.servers']);
+        $updateServer = Permission::create(['name' => 'Actualizar Servidores', 'slug' => 'update.servers']);
+        $deleteServer = Permission::create(['name' => 'Eliminar Servidores', 'slug' => 'delete.servers']);
+        $runServer = Permission::create(['name' => 'Ejecutar Servidores', 'slug' => 'run.servers']);
+        $stopServer = Permission::create(['name' => 'Detener Servidores', 'slug' => 'stop.servers']);
+        $adminRole->givePermissionTo($listServer, $createServer, $updateServer, $deleteServer, $runServer, $stopServer);
+        $managerRole->givePermissionTo($listServer, $updateServer, $runServer, $stopServer);
+
+        //Clients
+        $listClient = Permission::create(['name' => 'Listar Clientes', 'slug' => 'list.clients']);
+        $createClient = Permission::create(['name' => 'Crear Clientes', 'slug' => 'create.clients']);
+        $updateClient = Permission::create(['name' => 'Actualizar Clientes', 'slug' => 'update.clients']);
+        $deleteClient = Permission::create(['name' => 'Eliminar Clientes', 'slug' => 'delete.clients']);
+        $adminRole->givePermissionTo($listClient, $createClient, $updateClient, $deleteClient);
+        $managerRole->givePermissionTo($listClient, $updateClient);
 
         $user->assignRole($adminRole);
     }

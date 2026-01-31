@@ -18,7 +18,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('users', function () {
         return Inertia::render('users/index');
     })->name('users.index');
-    Route::get('policies', [PolicyController::class, 'edit'])->name('policies.index');
+    Route::get('policies', [PolicyController::class, 'index'])->name('policies.index');
 });
 
 require __DIR__.'/settings.php';

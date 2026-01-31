@@ -3,10 +3,15 @@
 namespace App\Services;
 
 use Illuminate\Database\Eloquent\Collection;
-use Spatie\Permission\Models\Role;
+use App\Contracts\Interfaces\PermissionModules;
 
-class PolicyService {
-    public function selectRoles(...$columns): Collection {
-        return Role::select($columns ?: ['*'])->get();
+
+class PolicyService implements PermissionModules {
+    public function groupPermissions(Collection $permissions): Collection {
+        return $permissions->groupBy(function ($item) {
+            $permission = explode('.', $item->slug)[0] ?? 'general';
+            return self::MODULES[$permission] ?? 'General';
+        });
     }
+
 }
