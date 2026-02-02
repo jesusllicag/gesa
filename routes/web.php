@@ -19,6 +19,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('users/index');
     })->name('users.index');
     Route::get('policies', [PolicyController::class, 'index'])->name('policies.index');
+    Route::post('policies', [PolicyController::class, 'store'])->name('policies.store');
+    Route::put('policies/{role}', [PolicyController::class, 'update'])->name('policies.update');
+    Route::delete('policies/{role}', [PolicyController::class, 'destroy'])->name('policies.destroy');
 });
 
 require __DIR__.'/settings.php';
