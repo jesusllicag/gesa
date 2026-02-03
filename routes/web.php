@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Settings\PolicyController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('policies', [PolicyController::class, 'store'])->name('policies.store');
     Route::put('policies/{role}', [PolicyController::class, 'update'])->name('policies.update');
     Route::delete('policies/{role}', [PolicyController::class, 'destroy'])->name('policies.destroy');
+
+    // Clients
+    Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+    Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
+    Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+    Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
 });
 
 require __DIR__.'/settings.php';

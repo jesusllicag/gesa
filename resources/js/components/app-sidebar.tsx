@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, Box, Folder, LayoutGrid, User } from 'lucide-react';
+import { BookOpen, Box, Folder, LayoutGrid, User, Users } from 'lucide-react';
 
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -18,6 +18,7 @@ import { type NavItem } from '@/types';
 
 import AppLogo from './app-logo';
 
+import { index as indexClients } from '@/routes/clients';
 import { index as indexPolicies } from '@/routes/policies';
 import { index as indexUsers } from '@/routes/users';
 
@@ -31,6 +32,11 @@ const mainNavItems: NavItem[] = [
         title: 'Activos',
         href: '/',
         icon: Box,
+    },
+    {
+        title: 'Clientes',
+        href: indexClients(),
+        icon: Users,
     },
 ];
 
