@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,6 +15,9 @@ class DatabaseSeeder extends Seeder
         // Ejecutar seeders de datos de referencia
         $this->call([
             UserSeeder::class,
+            OperatingSystemSeeder::class,
+            ImageSeeder::class,
+            InstanceTypeSeeder::class,
         ]);
     }
 }

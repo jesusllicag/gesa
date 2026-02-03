@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ServerController;
 use App\Http\Controllers\Settings\PolicyController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
     Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+    // Servers
+    Route::get('servers', [ServerController::class, 'index'])->name('servers.index');
+    Route::post('servers', [ServerController::class, 'store'])->name('servers.store');
+    Route::put('servers/{server}', [ServerController::class, 'update'])->name('servers.update');
+    Route::post('servers/{server}/start', [ServerController::class, 'start'])->name('servers.start');
+    Route::post('servers/{server}/stop', [ServerController::class, 'stop'])->name('servers.stop');
+    Route::delete('servers/{server}', [ServerController::class, 'destroy'])->name('servers.destroy');
 });
 
 require __DIR__.'/settings.php';

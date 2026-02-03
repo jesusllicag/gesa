@@ -94,7 +94,7 @@ export default function Welcome({
                                     </span>
                                 </p>
                                 <p className="mt-1 text-xs text-[#706f6c] dark:text-[#A1A09A]">
-                                    Construido con React y Tailwind CSS
+                                    Construido con Laravel, React y Tailwind CSS
                                 </p>
                             </div>
                             <ul className="flex gap-3 text-sm leading-normal">

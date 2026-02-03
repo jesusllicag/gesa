@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, Box, Folder, LayoutGrid, User, Users } from 'lucide-react';
+import { BookOpen, Box, Folder, LayoutGrid, Server, User, Users } from 'lucide-react';
 
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -14,13 +14,12 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
-
-import AppLogo from './app-logo';
-
 import { index as indexClients } from '@/routes/clients';
 import { index as indexPolicies } from '@/routes/policies';
+import { index as indexServers } from '@/routes/servers';
 import { index as indexUsers } from '@/routes/users';
+import { type NavItem } from '@/types';
+import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
@@ -37,6 +36,11 @@ const mainNavItems: NavItem[] = [
         title: 'Clientes',
         href: indexClients(),
         icon: Users,
+    },
+    {
+        title: 'Servidores',
+        href: indexServers(),
+        icon: Server,
     },
 ];
 
@@ -72,7 +76,7 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
-
+            
             <SidebarContent>
                 <NavMain items={mainNavItems} />
             </SidebarContent>
