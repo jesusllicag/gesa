@@ -112,10 +112,16 @@ interface InstanceType {
     rendimiento_red: string;
 }
 
+interface Region {
+    id: number;
+    codigo: string;
+    nombre: string;
+}
+
 interface Server {
     id: string;
     nombre: string;
-    region: string;
+    region_id: number;
     operating_system_id: number;
     image_id: number;
     instance_type_id: number;
@@ -126,6 +132,11 @@ interface Server {
     estado: 'running' | 'stopped' | 'pending' | 'terminated';
     deleted_at: string | null;
     created_at: string;
+    region: {
+        id: number;
+        codigo: string;
+        nombre: string;
+    };
     operating_system: {
         id: number;
         nombre: string;
@@ -176,39 +187,24 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const regions = [
-    { value: 'us-east-1', label: 'US East (N. Virginia)' },
-    { value: 'us-west-2', label: 'US West (Oregon)' },
-    { value: 'eu-west-1', label: 'Europe (Ireland)' },
-    { value: 'sa-east-1', label: 'South America (Sao Paulo)' },
-    { value: 'ap-northeast-1', label: 'Asia Pacific (Tokyo)' },
-];
-
 const statusFilters = [
     { value: 'active', label: 'Activos' },
     { value: 'inactive', label: 'Inactivos' },
     { value: 'all', label: 'Todos' },
 ];
 
-const osLogos: Record<string, string> = {
-    ubuntu: '/storage/icons/ubuntu.svg',
-    windows: '/storage/icons/microsoft.svg',
-    apple: '/storage/icons/macos.svg',
-    redhat: '/storage/icons/red-hat.svg',
-    debian: '/storage/icons/debian.svg',
-    aws: '/storage/icons/amazon.svg',
-};
-
 export default function Servers({
     servers,
     operatingSystems,
     instanceTypes,
+    regions,
     filters,
     permissions,
 }: {
     servers: PaginatedServers;
     operatingSystems: OperatingSystem[];
     instanceTypes: InstanceType[];
+    regions: Region[];
     filters: { search: string; status: string };
     permissions: Permissions;
 }) {
@@ -220,7 +216,7 @@ export default function Servers({
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [createForm, setCreateForm] = useState({
         nombre: '',
-        region: 'us-east-1',
+        region_id: '',
         operating_system_id: '',
         image_id: '',
         instance_type_id: '',
@@ -292,6 +288,7 @@ export default function Servers({
             storeServer().url,
             {
                 ...createForm,
+                region_id: Number(createForm.region_id),
                 operating_system_id: Number(createForm.operating_system_id),
                 image_id: Number(createForm.image_id),
                 instance_type_id: Number(createForm.instance_type_id),
@@ -302,7 +299,7 @@ export default function Servers({
                     setIsCreateDialogOpen(false);
                     setCreateForm({
                         nombre: '',
-                        region: 'us-east-1',
+                        region_id: '',
                         operating_system_id: '',
                         image_id: '',
                         instance_type_id: '',
@@ -571,7 +568,7 @@ export default function Servers({
                                             <div className="flex items-center gap-2">
                                                 <div className="flex size-5 shrink-0 items-center justify-center">
                                                     <img
-                                                        src={osLogos[server.operating_system?.logo] || osLogos.aws}
+                                                        src={server.operating_system.logo}
                                                         alt={server.operating_system?.nombre}
                                                         className="max-h-5 max-w-5 object-contain dark:invert"
                                                     />
@@ -599,7 +596,7 @@ export default function Servers({
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline">
-                                                {server.region}
+                                                {server.region?.codigo}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
@@ -759,11 +756,11 @@ export default function Servers({
                                 <div className="grid gap-2">
                                     <Label htmlFor="create-region">Region</Label>
                                     <Select
-                                        value={createForm.region}
+                                        value={createForm.region_id}
                                         onValueChange={(value) =>
                                             setCreateForm((prev) => ({
                                                 ...prev,
-                                                region: value,
+                                                region_id: value,
                                             }))
                                         }
                                     >
@@ -772,8 +769,8 @@ export default function Servers({
                                         </SelectTrigger>
                                         <SelectContent>
                                             {regions.map((region) => (
-                                                <SelectItem key={region.value} value={region.value}>
-                                                    {region.label}
+                                                <SelectItem key={region.id} value={String(region.id)}>
+                                                    {region.nombre}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -804,7 +801,7 @@ export default function Servers({
                                         >
                                             <div className="flex size-14 items-center justify-center">
                                                 <img
-                                                    src={osLogos[os.logo] || osLogos.aws}
+                                                    src={os.logo}
                                                     alt={os.nombre}
                                                     className="max-h-14 max-w-14 object-contain dark:invert"
                                                 />
@@ -995,6 +992,7 @@ export default function Servers({
                                 disabled={
                                     isCreating ||
                                     !createForm.nombre ||
+                                    !createForm.region_id ||
                                     !createForm.operating_system_id ||
                                     !createForm.image_id ||
                                     !createForm.instance_type_id
@@ -1026,7 +1024,7 @@ export default function Servers({
                                     <span className="font-medium">Nombre:</span> {editingServer?.nombre}
                                 </p>
                                 <p className="text-muted-foreground text-sm">
-                                    <span className="font-medium">Region:</span> {editingServer?.region}
+                                    <span className="font-medium">Region:</span> {editingServer?.region?.nombre}
                                 </p>
                                 <p className="text-muted-foreground text-sm">
                                     <span className="font-medium">Sistema:</span> {editingServer?.operating_system?.nombre}

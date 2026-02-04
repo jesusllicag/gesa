@@ -24,7 +24,7 @@ class StoreServerRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
-            'region' => ['required', Rule::in(['us-east-1', 'us-west-2', 'eu-west-1', 'sa-east-1', 'ap-northeast-1'])],
+            'region_id' => ['required', 'exists:regions,id'],
             'operating_system_id' => ['required', 'exists:operating_systems,id'],
             'image_id' => ['required', 'exists:images,id'],
             'instance_type_id' => ['required', 'exists:instance_types,id'],
@@ -45,8 +45,8 @@ class StoreServerRequest extends FormRequest
         return [
             'nombre.required' => 'El nombre del servidor es obligatorio.',
             'nombre.max' => 'El nombre no puede exceder 255 caracteres.',
-            'region.required' => 'La región es obligatoria.',
-            'region.in' => 'La región seleccionada no es válida.',
+            'region_id.required' => 'La región es obligatoria.',
+            'region_id.exists' => 'La región seleccionada no existe.',
             'operating_system_id.required' => 'El sistema operativo es obligatorio.',
             'operating_system_id.exists' => 'El sistema operativo seleccionado no existe.',
             'image_id.required' => 'La imagen es obligatoria.',

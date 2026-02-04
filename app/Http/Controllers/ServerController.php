@@ -6,6 +6,7 @@ use App\Http\Requests\StoreServerRequest;
 use App\Http\Requests\UpdateServerRequest;
 use App\Models\InstanceType;
 use App\Models\OperatingSystem;
+use App\Models\Region;
 use App\Models\Server;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
@@ -35,6 +36,7 @@ class ServerController extends Controller
         }
 
         $servers = $query->with([
+            'region:id,codigo,nombre',
             'operatingSystem:id,nombre,logo',
             'image:id,nombre,version,arquitectura',
             'instanceType:id,nombre,vcpus,memoria_gb',
@@ -44,7 +46,10 @@ class ServerController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
                         ->orWhere('id', 'like', "%{$search}%")
-                        ->orWhere('region', 'like', "%{$search}%");
+                        ->orWhereHas('region', function ($regionQuery) use ($search) {
+                            $regionQuery->where('codigo', 'like', "%{$search}%")
+                                ->orWhere('nombre', 'like', "%{$search}%");
+                        });
                 });
             })
             ->orderBy('created_at', 'desc')
@@ -60,10 +65,13 @@ class ServerController extends Controller
             ->orderBy('memoria_gb')
             ->get();
 
+        $regions = Region::select('id', 'codigo', 'nombre')->get();
+
         return Inertia::render('servers/index', [
             'servers' => $servers,
             'operatingSystems' => $operatingSystems,
             'instanceTypes' => $instanceTypes,
+            'regions' => $regions,
             'filters' => [
                 'search' => $search,
                 'status' => $status,

@@ -3,6 +3,7 @@
 use App\Models\Image;
 use App\Models\InstanceType;
 use App\Models\OperatingSystem;
+use App\Models\Region;
 use App\Models\Server;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
@@ -10,6 +11,10 @@ use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
+    $this->region = Region::factory()->create([
+        'codigo' => 'us-east-1',
+        'nombre' => 'US East (N. Virginia)',
+    ]);
     $this->operatingSystem = OperatingSystem::factory()->create([
         'nombre' => 'Ubuntu',
         'slug' => 'ubuntu',
@@ -50,6 +55,7 @@ it('can display servers index page', function () {
         ->has('servers')
         ->has('operatingSystems')
         ->has('instanceTypes')
+        ->has('regions')
         ->has('permissions')
     );
 });
@@ -57,7 +63,7 @@ it('can display servers index page', function () {
 it('can create a server with public connection', function () {
     $response = $this->actingAs($this->user)->post(route('servers.store'), [
         'nombre' => 'web-server-1',
-        'region' => 'us-east-1',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -71,7 +77,7 @@ it('can create a server with public connection', function () {
 
     $this->assertDatabaseHas('servers', [
         'nombre' => 'web-server-1',
-        'region' => 'us-east-1',
+        'region_id' => $this->region->id,
         'conexion' => 'publica',
         'clave_privada' => null,
         'estado' => 'pending',
@@ -82,7 +88,7 @@ it('can create a server with public connection', function () {
 it('creates a private key when connection is private', function () {
     $response = $this->actingAs($this->user)->post(route('servers.store'), [
         'nombre' => 'private-server',
-        'region' => 'sa-east-1',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -102,6 +108,7 @@ it('creates a private key when connection is private', function () {
 
 it('can delete a server', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -125,7 +132,7 @@ it('validates required fields when creating a server', function () {
 
     $response->assertSessionHasErrors([
         'nombre',
-        'region',
+        'region_id',
         'operating_system_id',
         'image_id',
         'instance_type_id',
@@ -136,10 +143,10 @@ it('validates required fields when creating a server', function () {
     ]);
 });
 
-it('validates region is valid', function () {
+it('validates region exists', function () {
     $response = $this->actingAs($this->user)->post(route('servers.store'), [
         'nombre' => 'test-server',
-        'region' => 'invalid-region',
+        'region_id' => 9999,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -149,13 +156,14 @@ it('validates region is valid', function () {
         'conexion' => 'publica',
     ]);
 
-    $response->assertSessionHasErrors(['region']);
+    $response->assertSessionHasErrors(['region_id']);
 });
 
 it('can search servers by name', function () {
     Server::factory()->create([
         'nombre' => 'production-web',
         'estado' => 'running',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -165,6 +173,7 @@ it('can search servers by name', function () {
     Server::factory()->create([
         'nombre' => 'staging-api',
         'estado' => 'running',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -191,6 +200,7 @@ it('filters active servers by default', function () {
     Server::factory()->create([
         'nombre' => 'active-server',
         'estado' => 'running',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -200,6 +210,7 @@ it('filters active servers by default', function () {
     Server::factory()->create([
         'nombre' => 'stopped-server',
         'estado' => 'stopped',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -218,6 +229,7 @@ it('can filter inactive servers', function () {
     Server::factory()->create([
         'nombre' => 'active-server',
         'estado' => 'running',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -227,6 +239,7 @@ it('can filter inactive servers', function () {
     Server::factory()->create([
         'nombre' => 'stopped-server',
         'estado' => 'stopped',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -245,6 +258,7 @@ it('can filter all servers', function () {
     Server::factory()->create([
         'nombre' => 'active-server',
         'estado' => 'running',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -254,6 +268,7 @@ it('can filter all servers', function () {
     Server::factory()->create([
         'nombre' => 'stopped-server',
         'estado' => 'stopped',
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -270,6 +285,7 @@ it('can filter all servers', function () {
 // Update tests
 it('can update server ram and disk', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -294,6 +310,7 @@ it('can update server ram and disk', function () {
 
 it('cannot reduce server ram', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -314,6 +331,7 @@ it('cannot reduce server ram', function () {
 
 it('cannot reduce server disk', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -334,6 +352,7 @@ it('cannot reduce server disk', function () {
 
 it('can change connection from public to private', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -357,6 +376,7 @@ it('can change connection from public to private', function () {
 
 it('can change connection from private to public', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -381,6 +401,7 @@ it('can change connection from private to public', function () {
 // Start/Stop tests
 it('can stop a running server', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -398,6 +419,7 @@ it('can stop a running server', function () {
 
 it('cannot stop a stopped server', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -413,6 +435,7 @@ it('cannot stop a stopped server', function () {
 
 it('can start a stopped server', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -430,6 +453,7 @@ it('can start a stopped server', function () {
 
 it('can start a pending server', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
@@ -447,6 +471,7 @@ it('can start a pending server', function () {
 
 it('cannot start a running server', function () {
     $server = Server::factory()->create([
+        'region_id' => $this->region->id,
         'operating_system_id' => $this->operatingSystem->id,
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,

@@ -14,7 +14,7 @@ class Server extends Model
 
     protected $fillable = [
         'nombre',
-        'region',
+        'region_id',
         'operating_system_id',
         'image_id',
         'instance_type_id',
@@ -32,6 +32,11 @@ class Server extends Model
         return [
             'clave_privada' => 'encrypted',
         ];
+    }
+
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
     }
 
     public function operatingSystem(): BelongsTo

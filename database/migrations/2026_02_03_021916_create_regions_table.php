@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('operating_systems', function (Blueprint $table) {
+        Schema::create('regions', function (Blueprint $table) {
             $table->id();
+            $table->string('codigo')->unique();
             $table->string('nombre');
-            $table->string('slug')->unique();
-            $table->string('logo')->unique();
             $table->timestamps();
         });
     }
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('operating_systems');
+        Schema::dropIfExists('regions');
     }
 };

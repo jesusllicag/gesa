@@ -16,32 +16,32 @@ class OperatingSystemSeeder extends Seeder
             [
                 'nombre' => 'Ubuntu',
                 'slug' => 'ubuntu',
-                'logo' => 'ubuntu',
+                'logo' => '/storage/icons/ubuntu.svg',
             ],
             [
                 'nombre' => 'Windows Server',
                 'slug' => 'windows',
-                'logo' => 'windows',
+                'logo' => '/storage/icons/microsoft.svg',
             ],
             [
                 'nombre' => 'macOS',
                 'slug' => 'macos',
-                'logo' => 'apple',
+                'logo' => '/storage/icons/macos.svg',
             ],
             [
                 'nombre' => 'Red Hat Enterprise Linux',
                 'slug' => 'rhel',
-                'logo' => 'redhat',
+                'logo' => '/storage/icons/red-hat.svg',
             ],
             [
                 'nombre' => 'Debian',
                 'slug' => 'debian',
-                'logo' => 'debian',
+                'logo' => '/storage/icons/debian.svg',
             ],
             [
                 'nombre' => 'Amazon Linux',
                 'slug' => 'amazon-linux',
-                'logo' => 'aws',
+                'logo' => '/storage/icons/amazon.svg',
             ],
         ];
 

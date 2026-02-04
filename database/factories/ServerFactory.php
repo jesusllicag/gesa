@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Image;
 use App\Models\InstanceType;
 use App\Models\OperatingSystem;
+use App\Models\Region;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -26,7 +27,7 @@ class ServerFactory extends Factory
         return [
             'id' => Str::uuid(),
             'nombre' => fake()->domainWord().'-server',
-            'region' => fake()->randomElement(['us-east-1', 'us-west-2', 'eu-west-1', 'sa-east-1', 'ap-northeast-1']),
+            'region_id' => Region::factory(),
             'operating_system_id' => OperatingSystem::factory(),
             'image_id' => Image::factory(),
             'instance_type_id' => InstanceType::factory(),

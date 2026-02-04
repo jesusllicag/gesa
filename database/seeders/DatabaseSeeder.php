@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         // Ejecutar seeders de datos de referencia
         $this->call([
             UserSeeder::class,
+            RegionSeeder::class,
             OperatingSystemSeeder::class,
             ImageSeeder::class,
             InstanceTypeSeeder::class,
