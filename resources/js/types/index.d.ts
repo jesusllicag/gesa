@@ -22,10 +22,25 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface SidebarPermissions {
+    canListClients: boolean;
+    canListServers: boolean;
+    canListPolicies: boolean;
+    canListUsers: boolean;
+}
+
+export interface UserPermissions {
+    canCreateUsers: boolean;
+    canUpdateUsers: boolean;
+    canDeleteUsers: boolean;
+}
+
 export interface SharedData {
     name: string;
     auth: Auth;
     sidebarOpen: boolean;
+    sidebarPermissions: SidebarPermissions;
+    userPermissions: UserPermissions;
     [key: string]: unknown;
 }
 

@@ -98,6 +98,12 @@ interface PaginatedClients {
     }[];
 }
 
+interface Permissions {
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Clientes',
@@ -108,9 +114,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Clients({
     clients,
     filters,
+    permissions,
 }: {
     clients: PaginatedClients;
     filters: { search: string };
+    permissions: Permissions;
 }) {
     const [search, setSearch] = useState(filters.search || '');
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -283,10 +291,12 @@ export default function Clients({
                             className="pl-9"
                         />
                     </div>
-                    <Button onClick={() => setIsCreateDialogOpen(true)}>
-                        <PlusIcon className="mr-2 size-4" />
-                        Nuevo Cliente
-                    </Button>
+                    {permissions.canCreate && (
+                        <Button onClick={() => setIsCreateDialogOpen(true)}>
+                            <PlusIcon className="mr-2 size-4" />
+                            Nuevo Cliente
+                        </Button>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
@@ -299,14 +309,16 @@ export default function Clients({
                                 <TableHead>Numero Documento</TableHead>
                                 <TableHead>Creado por</TableHead>
                                 <TableHead>Fecha de Creacion</TableHead>
-                                <TableHead className="w-12"></TableHead>
+                                {(permissions.canUpdate || permissions.canDelete) && (
+                                    <TableHead className="w-12"></TableHead>
+                                )}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {clients.data.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={7}
+                                        colSpan={(permissions.canUpdate || permissions.canDelete) ? 7 : 6}
                                         className="text-muted-foreground py-8 text-center"
                                     >
                                         No se encontraron clientes
@@ -337,40 +349,48 @@ export default function Clients({
                                                 client.created_at
                                             ).toLocaleDateString('es-PE')}
                                         </TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="size-8"
-                                                    >
-                                                        <MoreHorizontalIcon className="size-4" />
-                                                        <span className="sr-only">
-                                                            Abrir menu
-                                                        </span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            openEditDialog(client)
-                                                        }
-                                                    >
-                                                        Editar
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            openDeleteDialog(client)
-                                                        }
-                                                    >
-                                                        Eliminar
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+                                        {(permissions.canUpdate || permissions.canDelete) && (
+                                            <TableCell>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-8"
+                                                        >
+                                                            <MoreHorizontalIcon className="size-4" />
+                                                            <span className="sr-only">
+                                                                Abrir menu
+                                                            </span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        {permissions.canUpdate && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    openEditDialog(client)
+                                                                }
+                                                            >
+                                                                Editar
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {permissions.canUpdate && permissions.canDelete && (
+                                                            <DropdownMenuSeparator />
+                                                        )}
+                                                        {permissions.canDelete && (
+                                                            <DropdownMenuItem
+                                                                variant="destructive"
+                                                                onClick={() =>
+                                                                    openDeleteDialog(client)
+                                                                }
+                                                            >
+                                                                Eliminar
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))
                             )}

@@ -33,6 +33,11 @@ class ClientController extends Controller
             'filters' => [
                 'search' => $search,
             ],
+            'permissions' => [
+                'canCreate' => auth()->user()->can('create.clients'),
+                'canUpdate' => auth()->user()->can('update.clients'),
+                'canDelete' => auth()->user()->can('delete.clients'),
+            ],
         ]);
     }
 

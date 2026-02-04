@@ -35,16 +35,16 @@ export default function Welcome({
                                     href={login()}
                                     className="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                                 >
-                                    Log in
+                                    Iniciar Sesion
                                 </Link>
-                                {canRegister && (
+                                {/* {canRegister && (
                                     <Link
                                         href={register()}
                                         className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                                     >
                                         Register
                                     </Link>
-                                )}
+                                )} */}
                             </>
                         )}
                     </nav>
@@ -54,7 +54,7 @@ export default function Welcome({
                         <div className="flex-1 rounded-br-lg rounded-bl-lg bg-neutral-100 p-6 pb-12 text-[13px] leading-[20px] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-neutral-900 dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
                             <h1 className="mb-1 text-xl font-semibold">GESA</h1>
                             <p className="mb-4 text-sm font-medium text-[#706f6c] dark:text-[#A1A09A]">
-                                Sistema de Gestion de Activos
+                                Curso: Taller de Programación Web
                             </p>
                             <p className="mb-4 text-[#706f6c] dark:text-[#A1A09A]">
                                 Plataforma integral para la administracion y
@@ -62,6 +62,7 @@ export default function Welcome({
                                 en el alquiler de servidores y unidades de
                                 computo.
                             </p>
+                            
                             <ul className="mb-6 flex flex-col gap-2">
                                 <li className="flex items-start gap-2">
                                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#f53003] dark:bg-[#FF4433]" />
@@ -88,9 +89,9 @@ export default function Welcome({
                             </ul>
                             <div className="mb-6 border-t border-[#e3e3e0] pt-4 dark:border-[#3E3E3A]">
                                 <p className="text-xs text-[#706f6c] dark:text-[#A1A09A]">
-                                    Desarrollado por{' '}
+                                    Desarrollado por Jesus Llica García{' '}
                                     <span className="font-medium text-[#1b1b18] dark:text-[#EDEDEC]">
-                                        MizterFrek
+                                        (MizterFrek)
                                     </span>
                                 </p>
                                 <p className="mt-1 text-xs text-[#706f6c] dark:text-[#A1A09A]">

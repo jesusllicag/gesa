@@ -508,10 +508,12 @@ export default function Servers({
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button onClick={() => setIsCreateDialogOpen(true)}>
-                        <PlusIcon className="mr-2 size-4" />
-                        Nuevo Servidor
-                    </Button>
+                    {permissions.canCreate && (
+                        <Button onClick={() => setIsCreateDialogOpen(true)}>
+                            <PlusIcon className="mr-2 size-4" />
+                            Nuevo Servidor
+                        </Button>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">

@@ -1,5 +1,5 @@
 'use client';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { MoreHorizontalIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 
@@ -52,7 +52,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem } from '@/types';
+import { BreadcrumbItem, SharedData } from '@/types';
 
 import {
     destroy as destroyUser,
@@ -105,6 +105,9 @@ export default function Users({
     roles: Role[];
     filters: { search: string };
 }) {
+    const { userPermissions } = usePage<SharedData>().props;
+    const { canCreateUsers, canUpdateUsers, canDeleteUsers } = userPermissions;
+
     const [search, setSearch] = useState(filters.search || '');
     const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -296,10 +299,12 @@ export default function Users({
                             className="pl-9"
                         />
                     </div>
-                    <Button onClick={() => setIsCreateDialogOpen(true)}>
-                        <PlusIcon className="mr-2 size-4" />
-                        Nuevo Usuario
-                    </Button>
+                    {canCreateUsers && (
+                        <Button onClick={() => setIsCreateDialogOpen(true)}>
+                            <PlusIcon className="mr-2 size-4" />
+                            Nuevo Usuario
+                        </Button>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
@@ -310,14 +315,16 @@ export default function Users({
                                 <TableHead>Email</TableHead>
                                 <TableHead>Roles</TableHead>
                                 <TableHead>Fecha de Creacion</TableHead>
-                                <TableHead className="w-12"></TableHead>
+                                {(canUpdateUsers || canDeleteUsers) && (
+                                    <TableHead className="w-12"></TableHead>
+                                )}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {users.data.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={(canUpdateUsers || canDeleteUsers) ? 5 : 4}
                                         className="text-muted-foreground py-8 text-center"
                                     >
                                         No se encontraron usuarios
@@ -353,42 +360,50 @@ export default function Users({
                                                 user.created_at
                                             ).toLocaleDateString('es-PE')}
                                         </TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="size-8"
-                                                    >
-                                                        <MoreHorizontalIcon className="size-4" />
-                                                        <span className="sr-only">
-                                                            Abrir menu
-                                                        </span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            openEditDialog(user)
-                                                        }
-                                                    >
-                                                        Editar
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            openDeleteDialog(
-                                                                user
-                                                            )
-                                                        }
-                                                    >
-                                                        Eliminar
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+                                        {(canUpdateUsers || canDeleteUsers) && (
+                                            <TableCell>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-8"
+                                                        >
+                                                            <MoreHorizontalIcon className="size-4" />
+                                                            <span className="sr-only">
+                                                                Abrir menu
+                                                            </span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        {canUpdateUsers && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    openEditDialog(user)
+                                                                }
+                                                            >
+                                                                Editar
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {canUpdateUsers && canDeleteUsers && (
+                                                            <DropdownMenuSeparator />
+                                                        )}
+                                                        {canDeleteUsers && (
+                                                            <DropdownMenuItem
+                                                                variant="destructive"
+                                                                onClick={() =>
+                                                                    openDeleteDialog(
+                                                                        user
+                                                                    )
+                                                                }
+                                                            >
+                                                                Eliminar
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))
                             )}

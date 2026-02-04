@@ -17,8 +17,8 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::factory()->create(['name' => 'Test User', 'email' => 'test@example.com']);
-
+        $user = User::factory()->create(['name' => 'Admin', 'email' => 'test@example.com']);
+        $managerUser = User::factory()->create(['name' => 'Manager', 'email' => 'manager@example.com']);
         $adminRole = Role::create(['name' => 'Admin', 'slug' => 'admin']);
         $managerRole = Role::create(['name' => 'Manager', 'slug' => 'manager']);
 
@@ -57,5 +57,6 @@ class UserSeeder extends Seeder
         $adminRole->givePermissionTo($listPolicy, $createPolicy, $updatePolicy, $deletePolicy);
 
         $user->assignRole($adminRole);
+        $managerUser->assignRole($managerRole);
     }
 }
