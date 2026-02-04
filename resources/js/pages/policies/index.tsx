@@ -57,6 +57,13 @@ interface Permission {
     slug: string;
 }
 
+interface UserPermissions {
+    canList: boolean;
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Politicas de Permisos',
@@ -67,9 +74,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Policies({
     roles,
     permissions,
+    userPermissions,
 }: {
     roles: Role[] | null;
     permissions: Record<string, Permission[]> | null;
+    userPermissions: UserPermissions;
 }) {
     const { flash } = usePage<{ flash: { newRoleId?: number } }>().props;
 
@@ -168,40 +177,47 @@ export default function Policies({
             <Head title="Usuarios" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="gap-4 lg:flex lg:items-center lg:justify-between">
-                    <Select value={selectedRoleId} onValueChange={handleRoleChange}>
-                        <SelectTrigger className="w-full max-w-64">
-                            <SelectValue placeholder="Elegir Rol" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {roles?.map((r) => (
-                                <SelectItem key={r.id} value={r.id.toString()}>
-                                    {r.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {userPermissions.canList && (
+                        <Select value={selectedRoleId} onValueChange={handleRoleChange}>
+                            <SelectTrigger className="w-full max-w-64">
+                                <SelectValue placeholder="Elegir Rol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {roles?.map((r) => (
+                                    <SelectItem key={r.id} value={r.id.toString()}>
+                                        {r.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
 
                     <div className="mt-6 gap-4 space-y-4 sm:flex sm:items-center sm:space-y-0 lg:mt-0 lg:justify-end">
                         {selectedRoleId && (
                             <>
-                                <Button onClick={handleSave} disabled={isSaving}>
-                                    {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    onClick={() => setIsDeleteDialogOpen(true)}
-                                    disabled={isProtectedRole}
-                                    title={isProtectedRole ? 'No se puede eliminar este rol' : ''}
-                                >
-                                    Eliminar Rol
-                                </Button>
+                                {userPermissions.canUpdate && (
+                                    <Button onClick={handleSave} disabled={isSaving}>
+                                        {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                                    </Button>
+                                )}
+                                {userPermissions.canDelete && (
+                                    <Button
+                                        variant="destructive"
+                                        onClick={() => setIsDeleteDialogOpen(true)}
+                                        disabled={isProtectedRole}
+                                        title={isProtectedRole ? 'No se puede eliminar este rol' : ''}
+                                    >
+                                        Eliminar Rol
+                                    </Button>
+                                )}
                             </>
                         )}
 
-                        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button>Crear Nuevo Rol</Button>
-                            </DialogTrigger>
+                        {userPermissions.canCreate && (
+                            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>Crear Nuevo Rol</Button>
+                                </DialogTrigger>
                             <DialogContent className="sm:max-w-[425px]">
                                 <DialogHeader>
                                     <DialogTitle>Crear Nuevo Rol</DialogTitle>
@@ -237,6 +253,7 @@ export default function Policies({
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
+                        )}
 
                         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                             <AlertDialogContent>
@@ -263,28 +280,37 @@ export default function Policies({
 
                 <Separator />
 
-                {selectedRoleId && permissions && Object.keys(permissions).map((pKey) => (
-                    <div key={pKey} className="mb-4">
-                        <div className="font-semibold">{pKey}</div>
-                        <div className="mt-2 ml-3">
-                            {permissions[pKey]?.map((p: Permission) => (
-                                <Field key={p.id} className="mb-2" orientation="horizontal">
-                                    <Checkbox
-                                        id={`permission-${p.id}`}
-                                        name={`permission-${p.id}`}
-                                        checked={selectedPermissions.includes(p.id)}
-                                        onCheckedChange={(checked) =>
-                                            handlePermissionChange(p.id, checked as boolean)
-                                        }
-                                    />
-                                    <Label htmlFor={`permission-${p.id}`}>
-                                        {p.name}
-                                    </Label>
-                                </Field>
-                            ))}
-                        </div>
+                {!userPermissions.canList ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <p className="text-muted-foreground">
+                            No tienes permiso para ver las politicas de permisos.
+                        </p>
                     </div>
-                ))}
+                ) : (
+                    selectedRoleId && permissions && Object.keys(permissions).map((pKey) => (
+                        <div key={pKey} className="mb-4">
+                            <div className="font-semibold">{pKey}</div>
+                            <div className="mt-2 ml-3">
+                                {permissions[pKey]?.map((p: Permission) => (
+                                    <Field key={p.id} className="mb-2" orientation="horizontal">
+                                        <Checkbox
+                                            id={`permission-${p.id}`}
+                                            name={`permission-${p.id}`}
+                                            checked={selectedPermissions.includes(p.id)}
+                                            disabled={!userPermissions.canUpdate}
+                                            onCheckedChange={(checked) =>
+                                                handlePermissionChange(p.id, checked as boolean)
+                                            }
+                                        />
+                                        <Label htmlFor={`permission-${p.id}`}>
+                                            {p.name}
+                                        </Label>
+                                    </Field>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
         </AppLayout>
     );
