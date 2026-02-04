@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\WelcomeNewUserNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -45,22 +47,26 @@ class UserController extends Controller
         $validated = request()->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', Password::defaults()],
             'roles' => ['array'],
             'roles.*' => ['integer', 'exists:roles,id'],
         ]);
 
+        $temporaryPassword = Str::password(12);
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => $temporaryPassword,
+            'must_change_password' => true,
         ]);
 
         if (! empty($validated['roles'])) {
             $user->syncRoles($validated['roles']);
         }
 
-        return back()->with('success', 'Usuario creado correctamente.');
+        $user->notify(new WelcomeNewUserNotification($temporaryPassword));
+
+        return back()->with('success', 'Usuario creado correctamente. Se ha enviado un correo con las instrucciones de acceso.');
     }
 
     public function update(User $user): RedirectResponse

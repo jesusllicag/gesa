@@ -113,7 +113,6 @@ export default function Users({
     const [createForm, setCreateForm] = useState({
         name: '',
         email: '',
-        password: '',
         roles: [] as number[],
     });
     const [isCreating, setIsCreating] = useState(false);
@@ -162,7 +161,10 @@ export default function Users({
             preserveScroll: true,
             onSuccess: () => {
                 setIsCreateDialogOpen(false);
-                setCreateForm({ name: '', email: '', password: '', roles: [] });
+                setCreateForm({ name: '', email: '', roles: [] });
+            },
+            onError: (errors) => {
+                console.error('Error al crear usuario:', errors);
             },
             onFinish: () => setIsCreating(false),
         });
@@ -444,7 +446,8 @@ export default function Users({
                         <DialogHeader>
                             <DialogTitle>Crear Usuario</DialogTitle>
                             <DialogDescription>
-                                Ingresa los datos del nuevo usuario.
+                                Ingresa los datos del nuevo usuario. Se enviara un correo
+                                electronico con las instrucciones de acceso y una contrasena temporal.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4">
@@ -475,23 +478,6 @@ export default function Users({
                                         }))
                                     }
                                     placeholder="correo@ejemplo.com"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="create-password">
-                                    Contrasena
-                                </Label>
-                                <Input
-                                    id="create-password"
-                                    type="password"
-                                    value={createForm.password}
-                                    onChange={(e) =>
-                                        setCreateForm((prev) => ({
-                                            ...prev,
-                                            password: e.target.value,
-                                        }))
-                                    }
-                                    placeholder="••••••••"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -531,8 +517,7 @@ export default function Users({
                                 disabled={
                                     isCreating ||
                                     !createForm.name ||
-                                    !createForm.email ||
-                                    !createForm.password
+                                    !createForm.email
                                 }
                             >
                                 {isCreating ? 'Creando...' : 'Crear Usuario'}
