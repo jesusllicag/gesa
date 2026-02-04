@@ -5,8 +5,10 @@ namespace App\Providers;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Permission;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,20 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureGates();
+    }
+
+    protected function configureGates(): void
+    {
+        Gate::before(function ($user, $ability) {
+            $permission = Permission::where('slug', $ability)->first();
+
+            if ($permission) {
+                return $user->hasPermissionTo($permission->name);
+            }
+
+            return null;
+        });
     }
 
     protected function configureDefaults(): void

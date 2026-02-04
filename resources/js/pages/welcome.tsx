@@ -51,7 +51,7 @@ export default function Welcome({
                 </header>
                 <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
                     <main className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
-                        <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-[20px] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+                        <div className="flex-1 rounded-br-lg rounded-bl-lg bg-neutral-100 p-6 pb-12 text-[13px] leading-[20px] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-neutral-900 dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
                             <h1 className="mb-1 text-xl font-semibold">GESA</h1>
                             <p className="mb-4 text-sm font-medium text-[#706f6c] dark:text-[#A1A09A]">
                                 Sistema de Gestion de Activos
@@ -110,13 +110,12 @@ export default function Welcome({
                                 </li>
                             </ul>
                         </div>
-                        <div className="relative -mb-px flex aspect-[335/376] w-full shrink-0 items-center justify-center overflow-hidden rounded-t-lg bg-neutral-100 lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg dark:bg-neutral-900">
+                        <div className="relative -mb-px flex aspect-[335/376] w-full shrink-0 items-center justify-center overflow-hidden shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] rounded-t-lg bg-white lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg">
                             <img
-                                src="/storage/server-plat.svg"
+                                src="/storage/brand/welcome.gif"
                                 alt="Servidores y unidades de computo"
                                 className="w-full max-w-[80%] object-contain"
                             />
-                            <div className="absolute inset-0 rounded-t-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-t-none lg:rounded-r-lg dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]" />
                         </div>
                     </main>
                 </div>
