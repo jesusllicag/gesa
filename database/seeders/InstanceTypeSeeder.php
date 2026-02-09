@@ -22,6 +22,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 0.5,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Bajo',
+                'precio_hora' => 0.0058,
             ],
             [
                 'nombre' => 't2.micro',
@@ -31,6 +32,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 1,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Bajo a Moderado',
+                'precio_hora' => 0.0116,
             ],
             [
                 'nombre' => 't2.small',
@@ -40,6 +42,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 2,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Bajo a Moderado',
+                'precio_hora' => 0.0230,
             ],
             [
                 'nombre' => 't2.medium',
@@ -49,6 +52,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 4,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Bajo a Moderado',
+                'precio_hora' => 0.0464,
             ],
             [
                 'nombre' => 't2.large',
@@ -58,6 +62,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 8,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Bajo a Moderado',
+                'precio_hora' => 0.0928,
             ],
             // T3 - General Purpose (Burstable) Next Gen
             [
@@ -68,6 +73,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 1,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 5 Gbps',
+                'precio_hora' => 0.0104,
             ],
             [
                 'nombre' => 't3.small',
@@ -77,6 +83,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 2,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 5 Gbps',
+                'precio_hora' => 0.0208,
             ],
             [
                 'nombre' => 't3.medium',
@@ -86,6 +93,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 4,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 5 Gbps',
+                'precio_hora' => 0.0416,
             ],
             [
                 'nombre' => 't3.large',
@@ -95,6 +103,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 8,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 5 Gbps',
+                'precio_hora' => 0.0832,
             ],
             // M5 - General Purpose
             [
@@ -105,6 +114,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 8,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.0960,
             ],
             [
                 'nombre' => 'm5.xlarge',
@@ -114,6 +124,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 16,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.1920,
             ],
             [
                 'nombre' => 'm5.2xlarge',
@@ -123,6 +134,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 32,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.3840,
             ],
             // C5 - Compute Optimized
             [
@@ -133,6 +145,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 4,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.0850,
             ],
             [
                 'nombre' => 'c5.xlarge',
@@ -142,6 +155,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 8,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.1700,
             ],
             [
                 'nombre' => 'c5.2xlarge',
@@ -151,6 +165,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 16,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.3400,
             ],
             // R5 - Memory Optimized
             [
@@ -161,6 +176,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 16,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.1260,
             ],
             [
                 'nombre' => 'r5.xlarge',
@@ -170,6 +186,7 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 32,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.2520,
             ],
             [
                 'nombre' => 'r5.2xlarge',
@@ -179,11 +196,15 @@ class InstanceTypeSeeder extends Seeder
                 'memoria_gb' => 64,
                 'almacenamiento_incluido' => 'Solo EBS',
                 'rendimiento_red' => 'Hasta 10 Gbps',
+                'precio_hora' => 0.5040,
             ],
         ];
 
-        foreach ($instanceTypes as $instanceType) {
-            InstanceType::create($instanceType);
+        foreach ($instanceTypes as $data) {
+            InstanceType::updateOrCreate(
+                ['nombre' => $data['nombre']],
+                $data
+            );
         }
     }
 }

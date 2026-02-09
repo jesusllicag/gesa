@@ -60,7 +60,7 @@ class ServerController extends Controller
             ->with('images:id,operating_system_id,nombre,version,arquitectura,ami_id')
             ->get();
 
-        $instanceTypes = InstanceType::select('id', 'nombre', 'familia', 'vcpus', 'procesador', 'memoria_gb', 'rendimiento_red')
+        $instanceTypes = InstanceType::select('id', 'nombre', 'familia', 'vcpus', 'procesador', 'memoria_gb', 'rendimiento_red', 'precio_hora')
             ->orderBy('familia')
             ->orderBy('memoria_gb')
             ->get();
@@ -95,10 +95,20 @@ class ServerController extends Controller
             $clavePrivada = Str::random(32);
         }
 
+        $instanceType = InstanceType::findOrFail($validated['instance_type_id']);
+        $costoDiario = $this->calcularCostoDiario(
+            $instanceType,
+            $validated['ram_gb'],
+            $validated['disco_gb'],
+            $validated['disco_tipo'],
+            $validated['conexion']
+        );
+
         Server::create([
             ...$validated,
             'clave_privada' => $clavePrivada,
             'estado' => 'pending',
+            'costo_diario' => $costoDiario,
             'created_by' => auth()->id(),
         ]);
 
@@ -118,6 +128,15 @@ class ServerController extends Controller
         if ($validated['conexion'] === 'publica' && $server->conexion === 'privada') {
             $validated['clave_privada'] = null;
         }
+
+        $instanceType = $server->instanceType;
+        $validated['costo_diario'] = $this->calcularCostoDiario(
+            $instanceType,
+            $validated['ram_gb'],
+            $validated['disco_gb'],
+            $server->disco_tipo,
+            $validated['conexion']
+        );
 
         $server->update($validated);
 
@@ -152,5 +171,25 @@ class ServerController extends Controller
         $server->delete();
 
         return back()->with('success', 'Servidor eliminado correctamente.');
+    }
+
+    private function calcularCostoDiario(
+        InstanceType $instanceType,
+        int $ramGb,
+        int $discoGb,
+        string $discoTipo,
+        string $conexion
+    ): float {
+        $costoInstancia = $instanceType->precio_hora * 24;
+
+        $ramExtraGb = max(0, $ramGb - (float) $instanceType->memoria_gb);
+        $costoRamExtra = $ramExtraGb * 0.005 * 24;
+
+        $tarifaDiscoDia = $discoTipo === 'SSD' ? (0.08 / 30) : (0.045 / 30);
+        $costoDisco = $discoGb * $tarifaDiscoDia;
+
+        $surchargeConexion = $conexion === 'privada' ? 1.20 : 0;
+
+        return round($costoInstancia + $costoRamExtra + $costoDisco + $surchargeConexion, 4);
     }
 }

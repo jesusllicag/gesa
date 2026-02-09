@@ -18,12 +18,14 @@ class InstanceType extends Model
         'memoria_gb',
         'almacenamiento_incluido',
         'rendimiento_red',
+        'precio_hora',
     ];
 
     protected function casts(): array
     {
         return [
             'memoria_gb' => 'decimal:2',
+            'precio_hora' => 'decimal:4',
         ];
     }
 

@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
     CopyIcon,
+    DollarSignIcon,
     EditIcon,
     GlobeIcon,
     HardDriveIcon,
@@ -13,7 +14,7 @@ import {
     SearchIcon,
     ServerIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
     AlertDialog,
@@ -110,6 +111,7 @@ interface InstanceType {
     procesador: string;
     memoria_gb: number;
     rendimiento_red: string;
+    precio_hora: number;
 }
 
 interface Region {
@@ -130,6 +132,7 @@ interface Server {
     disco_tipo: 'SSD' | 'HDD';
     conexion: 'publica' | 'privada';
     estado: 'running' | 'stopped' | 'pending' | 'terminated';
+    costo_diario: number;
     deleted_at: string | null;
     created_at: string;
     region: {
@@ -193,6 +196,81 @@ const statusFilters = [
     { value: 'all', label: 'Todos' },
 ];
 
+const initialCreateForm = {
+    nombre: '',
+    region_id: '',
+    operating_system_id: '',
+    image_id: '',
+    instance_type_id: '',
+    ram_gb: 4,
+    disco_gb: 50,
+    disco_tipo: 'SSD' as 'SSD' | 'HDD',
+    conexion: 'publica' as 'publica' | 'privada',
+};
+
+function calcularCostoDiario(
+    instanceType: InstanceType | undefined,
+    ramGb: number,
+    discoGb: number,
+    discoTipo: 'SSD' | 'HDD',
+    conexion: 'publica' | 'privada',
+): { costoInstancia: number; costoRamExtra: number; costoDisco: number; surchargeConexion: number; total: number } {
+    if (!instanceType) {
+        return { costoInstancia: 0, costoRamExtra: 0, costoDisco: 0, surchargeConexion: 0, total: 0 };
+    }
+
+    const costoInstancia = Number(instanceType.precio_hora) * 24;
+    const ramExtraGb = Math.max(0, ramGb - Number(instanceType.memoria_gb));
+    const costoRamExtra = ramExtraGb * 0.005 * 24;
+    const tarifaDiscoDia = discoTipo === 'SSD' ? 0.08 / 30 : 0.045 / 30;
+    const costoDisco = discoGb * tarifaDiscoDia;
+    const surchargeConexion = conexion === 'privada' ? 1.2 : 0;
+    const total = costoInstancia + costoRamExtra + costoDisco + surchargeConexion;
+
+    return { costoInstancia, costoRamExtra, costoDisco, surchargeConexion, total };
+}
+
+function CostPreview({ desglose }: { desglose: { costoInstancia: number; costoRamExtra: number; costoDisco: number; surchargeConexion: number; total: number } }) {
+    if (desglose.total === 0) {
+        return null;
+    }
+
+    return (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
+            <div className="mb-2 flex items-center gap-2">
+                <DollarSignIcon className="size-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Costo Estimado Diario</span>
+            </div>
+            <div className="space-y-1 text-sm">
+                <div className="flex justify-between text-blue-700 dark:text-blue-300">
+                    <span>Instancia (24h)</span>
+                    <span>${desglose.costoInstancia.toFixed(4)}</span>
+                </div>
+                {desglose.costoRamExtra > 0 && (
+                    <div className="flex justify-between text-blue-700 dark:text-blue-300">
+                        <span>RAM adicional</span>
+                        <span>${desglose.costoRamExtra.toFixed(4)}</span>
+                    </div>
+                )}
+                <div className="flex justify-between text-blue-700 dark:text-blue-300">
+                    <span>Almacenamiento</span>
+                    <span>${desglose.costoDisco.toFixed(4)}</span>
+                </div>
+                {desglose.surchargeConexion > 0 && (
+                    <div className="flex justify-between text-blue-700 dark:text-blue-300">
+                        <span>Conexion privada</span>
+                        <span>${desglose.surchargeConexion.toFixed(4)}</span>
+                    </div>
+                )}
+                <div className="flex justify-between border-t border-blue-200 pt-1 font-semibold text-blue-900 dark:border-blue-700 dark:text-blue-100">
+                    <span>Total / dia</span>
+                    <span>${desglose.total.toFixed(4)}</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Servers({
     servers,
     operatingSystems,
@@ -214,18 +292,9 @@ export default function Servers({
 
     // Create dialog
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [createForm, setCreateForm] = useState({
-        nombre: '',
-        region_id: '',
-        operating_system_id: '',
-        image_id: '',
-        instance_type_id: '',
-        ram_gb: 4,
-        disco_gb: 50,
-        disco_tipo: 'SSD' as 'SSD' | 'HDD',
-        conexion: 'publica' as 'publica' | 'privada',
-    });
+    const [createForm, setCreateForm] = useState({ ...initialCreateForm });
     const [isCreating, setIsCreating] = useState(false);
+    const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
 
     // Edit dialog
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -246,6 +315,53 @@ export default function Servers({
     const [isStopDialogOpen, setIsStopDialogOpen] = useState(false);
     const [stoppingServer, setStoppingServer] = useState<Server | null>(null);
     const [isStopping, setIsStopping] = useState(false);
+
+    const isCreateFormDirty = useMemo(() => {
+        return JSON.stringify(createForm) !== JSON.stringify(initialCreateForm);
+    }, [createForm]);
+
+    const handleCreateDialogClose = (open: boolean) => {
+        if (!open && isCreateFormDirty) {
+            setIsDiscardDialogOpen(true);
+            return;
+        }
+        setIsCreateDialogOpen(open);
+    };
+
+    const handleDiscardChanges = () => {
+        setIsDiscardDialogOpen(false);
+        setIsCreateDialogOpen(false);
+        setCreateForm({ ...initialCreateForm });
+    };
+
+    const createCostPreview = useMemo(() => {
+        const selectedInstanceType = instanceTypes.find(
+            (t) => t.id === Number(createForm.instance_type_id),
+        );
+        return calcularCostoDiario(
+            selectedInstanceType,
+            createForm.ram_gb,
+            createForm.disco_gb,
+            createForm.disco_tipo,
+            createForm.conexion,
+        );
+    }, [createForm.instance_type_id, createForm.ram_gb, createForm.disco_gb, createForm.disco_tipo, createForm.conexion, instanceTypes]);
+
+    const editCostPreview = useMemo(() => {
+        if (!editingServer) {
+            return { costoInstancia: 0, costoRamExtra: 0, costoDisco: 0, surchargeConexion: 0, total: 0 };
+        }
+        const selectedInstanceType = instanceTypes.find(
+            (t) => t.id === editingServer.instance_type_id,
+        );
+        return calcularCostoDiario(
+            selectedInstanceType,
+            editForm.ram_gb,
+            editForm.disco_gb,
+            editingServer.disco_tipo,
+            editForm.conexion,
+        );
+    }, [editingServer, editForm.ram_gb, editForm.disco_gb, editForm.conexion, instanceTypes]);
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -297,17 +413,7 @@ export default function Servers({
                 preserveScroll: true,
                 onSuccess: () => {
                     setIsCreateDialogOpen(false);
-                    setCreateForm({
-                        nombre: '',
-                        region_id: '',
-                        operating_system_id: '',
-                        image_id: '',
-                        instance_type_id: '',
-                        ram_gb: 4,
-                        disco_gb: 50,
-                        disco_tipo: 'SSD',
-                        conexion: 'publica',
-                    });
+                    setCreateForm({ ...initialCreateForm });
                 },
                 onFinish: () => setIsCreating(false),
             }
@@ -526,6 +632,7 @@ export default function Servers({
                                 <TableHead>Region</TableHead>
                                 <TableHead>Almacenamiento</TableHead>
                                 <TableHead>Conexion</TableHead>
+                                <TableHead>Costo/Dia</TableHead>
                                 <TableHead>Estado</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
@@ -534,7 +641,7 @@ export default function Servers({
                             {servers.data.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={8}
+                                        colSpan={9}
                                         className="text-muted-foreground py-8 text-center"
                                     >
                                         <div className="flex flex-col items-center gap-2">
@@ -621,6 +728,11 @@ export default function Servers({
                                                     <span>Privada</span>
                                                 </div>
                                             )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-mono text-sm font-medium text-green-700 dark:text-green-400">
+                                                ${Number(server.costo_diario).toFixed(2)}
+                                            </span>
                                         </TableCell>
                                         <TableCell>{getStatusBadge(server)}</TableCell>
                                         <TableCell>
@@ -729,7 +841,7 @@ export default function Servers({
                 {/* Create Server Dialog */}
                 <Dialog
                     open={isCreateDialogOpen}
-                    onOpenChange={setIsCreateDialogOpen}
+                    onOpenChange={handleCreateDialogClose}
                 >
                     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                         <DialogHeader>
@@ -853,12 +965,14 @@ export default function Servers({
                                 <Label htmlFor="create-instance-type">Tipo de Instancia</Label>
                                 <Select
                                     value={createForm.instance_type_id}
-                                    onValueChange={(value) =>
+                                    onValueChange={(value) => {
+                                        const selectedType = instanceTypes.find((t) => t.id === Number(value));
                                         setCreateForm((prev) => ({
                                             ...prev,
                                             instance_type_id: value,
-                                        }))
-                                    }
+                                            ram_gb: selectedType ? Number(selectedType.memoria_gb) : prev.ram_gb,
+                                        }));
+                                    }}
                                 >
                                     <SelectTrigger id="create-instance-type">
                                         <SelectValue placeholder="Seleccionar tipo de instancia" />
@@ -869,7 +983,7 @@ export default function Servers({
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono">{type.nombre}</span>
                                                     <span className="text-muted-foreground text-xs">
-                                                        ({type.vcpus} vCPUs, {type.memoria_gb} GB RAM) - {type.familia}
+                                                        ({type.vcpus} vCPUs, {type.memoria_gb} GB RAM, ${Number(type.precio_hora).toFixed(4)}/hr) - {type.familia}
                                                     </span>
                                                 </div>
                                             </SelectItem>
@@ -984,6 +1098,9 @@ export default function Servers({
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Cost Preview */}
+                            <CostPreview desglose={createCostPreview} />
                         </div>
                         <DialogFooter className="mt-4">
                             <DialogClose asChild>
@@ -1005,6 +1122,30 @@ export default function Servers({
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* Discard Changes Confirmation */}
+                <AlertDialog
+                    open={isDiscardDialogOpen}
+                    onOpenChange={setIsDiscardDialogOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tienes cambios sin guardar en el formulario. Si sales ahora, se perderan todos los cambios realizados.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDiscardChanges}
+                                className="bg-destructive text-white hover:bg-destructive/90"
+                            >
+                                Descartar cambios
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {/* Edit Server Dialog */}
                 <Dialog
@@ -1121,6 +1262,9 @@ export default function Servers({
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Cost Preview for Edit */}
+                            <CostPreview desglose={editCostPreview} />
                         </div>
                         <DialogFooter className="mt-4">
                             <DialogClose asChild>

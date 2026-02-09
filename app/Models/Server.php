@@ -24,6 +24,7 @@ class Server extends Model
         'conexion',
         'clave_privada',
         'estado',
+        'costo_diario',
         'created_by',
     ];
 
@@ -31,6 +32,7 @@ class Server extends Model
     {
         return [
             'clave_privada' => 'encrypted',
+            'costo_diario' => 'decimal:4',
         ];
     }
 
