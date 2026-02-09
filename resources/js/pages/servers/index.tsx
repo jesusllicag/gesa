@@ -123,6 +123,7 @@ interface Region {
 interface Server {
     id: string;
     nombre: string;
+    client_id: number | null;
     region_id: number;
     operating_system_id: number;
     image_id: number;
@@ -570,7 +571,7 @@ export default function Servers({
     };
 
     const canStartServer = (server: Server) => {
-        return permissions.canRun && (server.estado === 'stopped' || server.estado === 'pending');
+        return permissions.canRun && server.client_id !== null && (server.estado === 'stopped' || server.estado === 'pending');
     };
 
     const canDeleteServer = (server: Server) => {

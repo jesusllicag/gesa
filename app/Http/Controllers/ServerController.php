@@ -104,13 +104,18 @@ class ServerController extends Controller
             $validated['conexion']
         );
 
-        Server::create([
+        $server = Server::create([
             ...$validated,
             'clave_privada' => $clavePrivada,
             'estado' => 'pending',
             'costo_diario' => $costoDiario,
             'created_by' => auth()->id(),
         ]);
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->log('Servidor creado');
 
         return back()->with('success', 'Servidor creado correctamente.');
     }
@@ -138,13 +143,25 @@ class ServerController extends Controller
             $validated['conexion']
         );
 
+        $cambios = array_diff_assoc($validated, $server->only(array_keys($validated)));
+
         $server->update($validated);
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties(['cambios' => $cambios])
+            ->log('Servidor editado');
 
         return back()->with('success', 'Servidor actualizado correctamente.');
     }
 
     public function start(Server $server): RedirectResponse
     {
+        if ($server->client_id === null) {
+            return back()->with('error', 'El servidor debe estar vinculado a un cliente para poder iniciarse.');
+        }
+
         if (! in_array($server->estado, ['stopped', 'pending'])) {
             return back()->with('error', 'El servidor no puede ser iniciado en su estado actual.');
         }
@@ -158,7 +175,15 @@ class ServerController extends Controller
             $data['fecha_alta'] = now();
         }
 
+        $estadoAnterior = $server->estado;
+
         $server->update($data);
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties(['estado_anterior' => $estadoAnterior])
+            ->log('Servidor iniciado');
 
         return back()->with('success', 'Servidor iniciado correctamente.');
     }
@@ -180,6 +205,12 @@ class ServerController extends Controller
             'ultimo_inicio' => null,
         ]);
 
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties(['tiempo_encendido_acumulado' => $acumulado])
+            ->log('Servidor detenido');
+
         return back()->with('success', 'Servidor detenido correctamente.');
     }
 
@@ -193,6 +224,12 @@ class ServerController extends Controller
 
         $server->estado = 'terminated';
         $server->save();
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->log('Servidor terminado');
+
         $server->delete();
 
         return back()->with('success', 'Servidor eliminado correctamente.');

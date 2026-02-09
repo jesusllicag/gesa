@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Client;
 use App\Models\Image;
 use App\Models\InstanceType;
 use App\Models\OperatingSystem;
@@ -32,6 +33,8 @@ beforeEach(function () {
         'vcpus' => 1,
         'memoria_gb' => 1,
     ]);
+
+    $this->client = Client::factory()->create(['created_by' => $this->user->id]);
 
     // Create permissions
     Permission::firstOrCreate(['name' => 'Listar Servidores', 'slug' => 'list.servers']);
@@ -440,6 +443,7 @@ it('can start a stopped server', function () {
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
         'created_by' => $this->user->id,
+        'client_id' => $this->client->id,
         'estado' => 'stopped',
     ]);
 
@@ -458,6 +462,7 @@ it('can start a pending server', function () {
         'image_id' => $this->image->id,
         'instance_type_id' => $this->instanceType->id,
         'created_by' => $this->user->id,
+        'client_id' => $this->client->id,
         'estado' => 'pending',
     ]);
 

@@ -55,6 +55,7 @@ Route::middleware(['auth', 'verified', 'password.changed'])->group(function () {
     // Activos
     Route::get('activos', [ActivoController::class, 'index'])->name('activos.index');
     Route::post('activos', [ActivoController::class, 'store'])->name('activos.store');
+    Route::get('activos/{server}', [ActivoController::class, 'show'])->name('activos.show');
     Route::put('activos/{server}', [ActivoController::class, 'update'])->name('activos.update');
     Route::post('activos/{server}/dar-de-baja', [ActivoController::class, 'darDeBaja'])->name('activos.dar-de-baja');
 

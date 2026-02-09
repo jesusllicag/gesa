@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Server extends Model
 {
@@ -74,6 +77,19 @@ class Server extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function pagosMensuales(): HasMany
+    {
+        return $this->hasMany(PagoMensual::class);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['nombre', 'hostname', 'ip_address', 'entorno', 'estado', 'costo_diario', 'client_id'])
+            ->logOnlyDirty()
+            ->useLogName('servidores');
     }
 
     /**

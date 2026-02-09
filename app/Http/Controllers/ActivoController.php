@@ -9,6 +9,7 @@ use App\Models\Server;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
 
 class ActivoController extends Controller
 {
@@ -85,6 +86,41 @@ class ActivoController extends Controller
         ]);
     }
 
+    public function show(Server $server): Response
+    {
+        $server->load([
+            'client',
+            'region',
+            'operatingSystem',
+            'image',
+            'instanceType',
+            'creator:id,name',
+            'pagosMensuales' => fn ($q) => $q->orderByDesc('anio')->orderByDesc('mes'),
+        ]);
+
+        $server->tiempo_encendido_total = $server->tiempo_encendido_total;
+
+        $activities = Activity::query()
+            ->where('subject_type', Server::class)
+            ->where('subject_id', $server->id)
+            ->with('causer:id,name')
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->withQueryString();
+
+        $diasDelMes = now()->daysInMonth;
+        $costoMensualEstimado = round((float) $server->costo_diario * $diasDelMes, 4);
+
+        $pagosPendientes = $server->pagosMensuales->whereIn('estado', ['pendiente', 'vencido'])->count();
+
+        return Inertia::render('activos/show', [
+            'server' => $server,
+            'activities' => $activities,
+            'costoMensualEstimado' => $costoMensualEstimado,
+            'pagosPendientes' => $pagosPendientes,
+        ]);
+    }
+
     public function store(StoreActivoRequest $request): RedirectResponse
     {
         $validated = $request->validated();
@@ -104,6 +140,16 @@ class ActivoController extends Controller
             'entorno' => $validated['entorno'],
         ]);
 
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'client_id' => $validated['client_id'],
+                'hostname' => $validated['hostname'],
+                'entorno' => $validated['entorno'],
+            ])
+            ->log('Activo creado - Servidor asignado a cliente');
+
         return back()->with('success', 'Activo creado correctamente.');
     }
 
@@ -111,7 +157,15 @@ class ActivoController extends Controller
     {
         $validated = $request->validated();
 
+        $cambios = array_diff_assoc($validated, $server->only(array_keys($validated)));
+
         $server->update($validated);
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties(['cambios' => $cambios])
+            ->log('Activo actualizado');
 
         return back()->with('success', 'Activo actualizado correctamente.');
     }
@@ -126,6 +180,16 @@ class ActivoController extends Controller
 
         $server->estado = 'terminated';
         $server->save();
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'client_id' => $server->client_id,
+                'client_nombre' => $server->client?->nombre,
+            ])
+            ->log('Activo dado de baja');
+
         $server->delete();
 
         return back()->with('success', 'Servidor dado de baja correctamente.');

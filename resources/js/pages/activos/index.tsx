@@ -1,5 +1,5 @@
 'use client';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     BoxIcon,
     EditIcon,
@@ -70,6 +70,7 @@ import { BreadcrumbItem } from '@/types';
 
 import {
     darDeBaja,
+    show as showActivo,
     store as storeActivo,
     update as updateActivo,
 } from '@/actions/App/Http/Controllers/ActivoController';
@@ -518,7 +519,12 @@ export default function Activos({
                                             <span className="font-medium">{activo.client?.nombre}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm">{activo.nombre}</span>
+                                            <Link
+                                                href={showActivo(activo.id).url}
+                                                className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                                            >
+                                                {activo.nombre}
+                                            </Link>
                                         </TableCell>
                                         <TableCell>
                                             <span className="font-mono text-sm">{activo.hostname || '-'}</span>
