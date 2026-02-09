@@ -8,6 +8,7 @@ use App\Models\InstanceType;
 use App\Models\OperatingSystem;
 use App\Models\Region;
 use App\Models\Server;
+use App\Services\CostCalculatorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class ServerController extends Controller
 {
+    public function __construct(private CostCalculatorService $costCalculator) {}
+
     public function index(): Response
     {
         $search = request()->input('search', '');
@@ -96,7 +99,7 @@ class ServerController extends Controller
         }
 
         $instanceType = InstanceType::findOrFail($validated['instance_type_id']);
-        $costoDiario = $this->calcularCostoDiario(
+        $costoDiario = $this->costCalculator->calcularCostoDiario(
             $instanceType,
             $validated['ram_gb'],
             $validated['disco_gb'],
@@ -144,7 +147,7 @@ class ServerController extends Controller
         }
 
         $instanceType = $server->instanceType;
-        $validated['costo_diario'] = $this->calcularCostoDiario(
+        $validated['costo_diario'] = $this->costCalculator->calcularCostoDiario(
             $instanceType,
             $validated['ram_gb'],
             $validated['disco_gb'],
@@ -249,25 +252,5 @@ class ServerController extends Controller
         $server->delete();
 
         return back()->with('success', 'Servidor eliminado correctamente.');
-    }
-
-    private function calcularCostoDiario(
-        InstanceType $instanceType,
-        int $ramGb,
-        int $discoGb,
-        string $discoTipo,
-        string $conexion
-    ): float {
-        $costoInstancia = $instanceType->precio_hora * 24;
-
-        $ramExtraGb = max(0, $ramGb - (float) $instanceType->memoria_gb);
-        $costoRamExtra = $ramExtraGb * 0.005 * 24;
-
-        $tarifaDiscoDia = $discoTipo === 'SSD' ? (0.08 / 30) : (0.045 / 30);
-        $costoDisco = $discoGb * $tarifaDiscoDia;
-
-        $surchargeConexion = $conexion === 'privada' ? 1.20 : 0;
-
-        return round($costoInstancia + $costoRamExtra + $costoDisco + $surchargeConexion, 4);
     }
 }

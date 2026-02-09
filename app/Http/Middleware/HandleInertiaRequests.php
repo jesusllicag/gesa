@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
                 'canListActivos' => $user?->can('list.activos') ?? false,
                 'canListClients' => $user?->can('list.clients') ?? false,
                 'canListServers' => $user?->can('list.servers') ?? false,
+                'canListSolicitudes' => $user !== null,
                 'canListPolicies' => $user?->can('list.policies') ?? false,
                 'canListUsers' => $user?->can('list.users') ?? false,
             ],

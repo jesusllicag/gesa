@@ -9,15 +9,15 @@ beforeEach(function () {
 
 describe('index', function () {
     it('requires authentication', function () {
-        $this->get('/clients')
-            ->assertRedirect('/login');
+        $this->get('/admin/clients')
+            ->assertRedirect('/admin/login');
     });
 
     it('displays paginated clients', function () {
         Client::factory()->count(3)->create(['created_by' => $this->user->id]);
 
         $this->actingAs($this->user)
-            ->get('/clients')
+            ->get('/admin/clients')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->component('clients/index')
@@ -30,7 +30,7 @@ describe('index', function () {
         Client::factory()->create(['nombre' => 'Empresa XYZ', 'created_by' => $this->user->id]);
 
         $this->actingAs($this->user)
-            ->get('/clients?search=ABC')
+            ->get('/admin/clients?search=ABC')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('clients.data', 1)
@@ -49,7 +49,7 @@ describe('store', function () {
         ];
 
         $this->actingAs($this->user)
-            ->post('/clients', $clientData)
+            ->post('/admin/clients', $clientData)
             ->assertRedirect();
 
         $this->assertDatabaseHas('clients', [
@@ -63,7 +63,7 @@ describe('store', function () {
 
     it('validates required fields', function () {
         $this->actingAs($this->user)
-            ->post('/clients', [])
+            ->post('/admin/clients', [])
             ->assertSessionHasErrors(['nombre', 'email', 'tipo_documento', 'numero_documento']);
     });
 
@@ -71,7 +71,7 @@ describe('store', function () {
         Client::factory()->create(['email' => 'existing@company.com', 'created_by' => $this->user->id]);
 
         $this->actingAs($this->user)
-            ->post('/clients', [
+            ->post('/admin/clients', [
                 'nombre' => 'New Company',
                 'email' => 'existing@company.com',
                 'tipo_documento' => 'DNI',
@@ -82,7 +82,7 @@ describe('store', function () {
 
     it('validates tipo_documento values', function () {
         $this->actingAs($this->user)
-            ->post('/clients', [
+            ->post('/admin/clients', [
                 'nombre' => 'Test Company',
                 'email' => 'test@company.com',
                 'tipo_documento' => 'INVALID',
@@ -97,7 +97,7 @@ describe('update', function () {
         $client = Client::factory()->create(['created_by' => $this->user->id]);
 
         $this->actingAs($this->user)
-            ->put("/clients/{$client->id}", [
+            ->put("/admin/clients/{$client->id}", [
                 'nombre' => 'Updated Name',
                 'email' => 'updated@company.com',
                 'tipo_documento' => 'RUC',
@@ -119,7 +119,7 @@ describe('update', function () {
         ]);
 
         $this->actingAs($this->user)
-            ->put("/clients/{$client->id}", [
+            ->put("/admin/clients/{$client->id}", [
                 'nombre' => 'Updated Name',
                 'email' => 'keep@company.com',
                 'tipo_documento' => $client->tipo_documento,
@@ -134,7 +134,7 @@ describe('destroy', function () {
         $client = Client::factory()->create(['created_by' => $this->user->id]);
 
         $this->actingAs($this->user)
-            ->delete("/clients/{$client->id}")
+            ->delete("/admin/clients/{$client->id}")
             ->assertRedirect();
 
         $this->assertSoftDeleted('clients', ['id' => $client->id]);

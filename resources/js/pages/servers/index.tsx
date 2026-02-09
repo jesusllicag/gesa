@@ -3,7 +3,6 @@ import { Head, router, usePage } from '@inertiajs/react';
 import {
     CheckIcon,
     CopyIcon,
-    DollarSignIcon,
     EditIcon,
     GlobeIcon,
     HardDriveIcon,
@@ -79,7 +78,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { CostPreview } from '@/components/cost-preview';
 import AppLayout from '@/layouts/app-layout';
+import { calcularCostoDiario } from '@/lib/server-costs';
 import { index as indexServers } from '@/routes/servers';
 import { BreadcrumbItem } from '@/types';
 
@@ -210,69 +211,6 @@ const initialCreateForm = {
     disco_tipo: 'SSD' as 'SSD' | 'HDD',
     conexion: 'publica' as 'publica' | 'privada',
 };
-
-function calcularCostoDiario(
-    instanceType: InstanceType | undefined,
-    ramGb: number,
-    discoGb: number,
-    discoTipo: 'SSD' | 'HDD',
-    conexion: 'publica' | 'privada',
-): { costoInstancia: number; costoRamExtra: number; costoDisco: number; surchargeConexion: number; total: number } {
-    if (!instanceType) {
-        return { costoInstancia: 0, costoRamExtra: 0, costoDisco: 0, surchargeConexion: 0, total: 0 };
-    }
-
-    const costoInstancia = Number(instanceType.precio_hora) * 24;
-    const ramExtraGb = Math.max(0, ramGb - Number(instanceType.memoria_gb));
-    const costoRamExtra = ramExtraGb * 0.005 * 24;
-    const tarifaDiscoDia = discoTipo === 'SSD' ? 0.08 / 30 : 0.045 / 30;
-    const costoDisco = discoGb * tarifaDiscoDia;
-    const surchargeConexion = conexion === 'privada' ? 1.2 : 0;
-    const total = costoInstancia + costoRamExtra + costoDisco + surchargeConexion;
-
-    return { costoInstancia, costoRamExtra, costoDisco, surchargeConexion, total };
-}
-
-function CostPreview({ desglose }: { desglose: { costoInstancia: number; costoRamExtra: number; costoDisco: number; surchargeConexion: number; total: number } }) {
-    if (desglose.total === 0) {
-        return null;
-    }
-
-    return (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/50">
-            <div className="mb-2 flex items-center gap-2">
-                <DollarSignIcon className="size-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Costo Estimado Diario</span>
-            </div>
-            <div className="space-y-1 text-sm">
-                <div className="flex justify-between text-blue-700 dark:text-blue-300">
-                    <span>Instancia (24h)</span>
-                    <span>${desglose.costoInstancia.toFixed(4)}</span>
-                </div>
-                {desglose.costoRamExtra > 0 && (
-                    <div className="flex justify-between text-blue-700 dark:text-blue-300">
-                        <span>RAM adicional</span>
-                        <span>${desglose.costoRamExtra.toFixed(4)}</span>
-                    </div>
-                )}
-                <div className="flex justify-between text-blue-700 dark:text-blue-300">
-                    <span>Almacenamiento</span>
-                    <span>${desglose.costoDisco.toFixed(4)}</span>
-                </div>
-                {desglose.surchargeConexion > 0 && (
-                    <div className="flex justify-between text-blue-700 dark:text-blue-300">
-                        <span>Conexion privada</span>
-                        <span>${desglose.surchargeConexion.toFixed(4)}</span>
-                    </div>
-                )}
-                <div className="flex justify-between border-t border-blue-200 pt-1 font-semibold text-blue-900 dark:border-blue-700 dark:text-blue-100">
-                    <span>Total / dia</span>
-                    <span>${desglose.total.toFixed(4)}</span>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export default function Servers({
     servers,

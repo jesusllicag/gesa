@@ -20,7 +20,7 @@ describe('user permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/users')
+            ->get('/admin/users')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('userPermissions')
@@ -38,7 +38,7 @@ describe('user permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/users')
+            ->get('/admin/users')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('userPermissions')
@@ -56,7 +56,7 @@ describe('user permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/users')
+            ->get('/admin/users')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('userPermissions')

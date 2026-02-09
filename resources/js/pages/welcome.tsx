@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 
-import { dashboard, login } from '@/routes';
+import { dashboard } from '@/routes';
 import { type SharedData } from '@/types';
 
 export default function Welcome() {
@@ -28,7 +28,7 @@ export default function Welcome() {
                         ) : (
                             <>
                                 <Link
-                                    href={login()}
+                                    href="/client/login"
                                     className="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                                 >
                                     Iniciar Sesion
@@ -89,7 +89,7 @@ export default function Welcome() {
                             <ul className="flex gap-3 text-sm leading-normal">
                                 <li>
                                     <Link
-                                        href={auth.user ? dashboard() : login()}
+                                        href={auth.user ? dashboard() : '/client/login'}
                                         className="inline-block rounded-sm border border-black bg-[#1b1b18] px-5 py-1.5 text-sm leading-normal text-white hover:border-black hover:bg-black dark:border-[#eeeeec] dark:bg-[#eeeeec] dark:text-[#1C1C1A] dark:hover:border-white dark:hover:bg-white"
                                     >
                                         {auth.user

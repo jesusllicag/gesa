@@ -20,7 +20,7 @@ describe('client permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/clients')
+            ->get('/admin/clients')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('permissions')
@@ -38,7 +38,7 @@ describe('client permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/clients')
+            ->get('/admin/clients')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('permissions')
@@ -56,7 +56,7 @@ describe('client permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/clients')
+            ->get('/admin/clients')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('permissions')

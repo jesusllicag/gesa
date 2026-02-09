@@ -26,6 +26,7 @@ export interface SidebarPermissions {
     canListActivos: boolean;
     canListClients: boolean;
     canListServers: boolean;
+    canListSolicitudes: boolean;
     canListPolicies: boolean;
     canListUsers: boolean;
 }

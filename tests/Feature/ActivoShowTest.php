@@ -101,7 +101,7 @@ it('requires authentication to access activo show', function () {
 });
 
 it('returns 404 for non-existent server', function () {
-    $response = $this->actingAs($this->user)->get('/activos/non-existent-uuid');
+    $response = $this->actingAs($this->user)->get('/admin/activos/non-existent-uuid');
 
     $response->assertNotFound();
 });

@@ -68,4 +68,9 @@ class Client extends Authenticatable
     {
         return $this->hasMany(Server::class);
     }
+
+    public function solicitudes(): HasMany
+    {
+        return $this->hasMany(SolicitudServidor::class);
+    }
 }

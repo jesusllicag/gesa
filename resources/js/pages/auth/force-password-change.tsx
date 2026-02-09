@@ -16,7 +16,7 @@ export default function ForcePasswordChange() {
             <Head title="Cambiar contrasena" />
 
             <Form
-                action="/password/force-change"
+                action="/admin/password/force-change"
                 method="put"
                 resetOnSuccess={['current_password', 'password', 'password_confirmation']}
             >

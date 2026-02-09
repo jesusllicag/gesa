@@ -20,7 +20,7 @@ describe('sidebar permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/dashboard')
+            ->get('/admin/dashboard')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('sidebarPermissions')
@@ -35,7 +35,7 @@ describe('sidebar permissions sharing', function () {
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get('/dashboard')
+            ->get('/admin/dashboard')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('sidebarPermissions')
@@ -54,7 +54,7 @@ describe('sidebar permissions sharing', function () {
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->get('/dashboard')
+            ->get('/admin/dashboard')
             ->assertSuccessful()
             ->assertInertia(fn ($page) => $page
                 ->has('sidebarPermissions')
