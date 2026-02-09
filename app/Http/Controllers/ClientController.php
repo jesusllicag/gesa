@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Models\Client;
+use App\Notifications\WelcomeClientNotification;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
 class ClientController extends Controller
 {
@@ -43,10 +46,21 @@ class ClientController extends Controller
 
     public function store(StoreClientRequest $request): RedirectResponse
     {
-        Client::create([
+        $temporaryPassword = Str::password(12);
+
+        $client = Client::create([
             ...$request->validated(),
+            'password' => $temporaryPassword,
+            'must_change_password' => true,
             'created_by' => auth()->id(),
         ]);
+
+        $clientRole = Role::where('slug', 'clients')->where('guard_name', 'client')->first();
+        if ($clientRole) {
+            $client->assignRole($clientRole);
+        }
+
+        $client->notify(new WelcomeClientNotification($temporaryPassword));
 
         return back()->with('success', 'Cliente creado correctamente.');
     }

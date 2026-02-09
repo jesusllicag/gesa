@@ -64,6 +64,9 @@ class UserSeeder extends Seeder
         $deletePolicy = Permission::create(['name' => 'Eliminar Politicas', 'slug' => 'delete.policies']);
         $adminRole->givePermissionTo($listPolicy, $createPolicy, $updatePolicy, $deletePolicy);
 
+        // Client role (for client guard)
+        Role::create(['name' => 'Clients', 'slug' => 'clients', 'guard_name' => 'client']);
+
         $user->assignRole($adminRole);
         $managerUser->assignRole($managerRole);
     }

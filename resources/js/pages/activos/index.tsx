@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     BoxIcon,
+    CopyIcon,
     EditIcon,
     MoreHorizontalIcon,
     PlayIcon,
@@ -9,7 +10,7 @@ import {
     SearchIcon,
     Trash2Icon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import {
     darDeBaja,
@@ -97,8 +98,6 @@ interface Activo {
     estado: 'running' | 'stopped' | 'pending' | 'terminated';
     costo_diario: number;
     first_activated_at: string | null;
-    latest_release: string | null;
-    active_ms: number;
     deleted_at: string | null;
     client: {
         id: number;
@@ -164,26 +163,6 @@ const entornoColors: Record<string, string> = {
     PROD: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 };
 
-function formatUptimeHMS(ms: number): string {
-    if (ms <= 0) {
-        return '-';
-    }
-
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
-}
-
-function computeUptimeMs(activo: Activo): number {
-    if (activo.estado === 'running' && activo.latest_release) {
-        return activo.active_ms + (Date.now() - Date.parse(activo.latest_release));
-    }
-    return activo.active_ms;
-}
-
 export default function Activos({
     activos,
     clients,
@@ -197,22 +176,6 @@ export default function Activos({
     filters: { search: string; status: string; client_id: string };
     permissions: Permissions;
 }) {
-    const [, setTick] = useState(0);
-
-    const hasRunning = activos.data.some((a) => a.estado === 'running' && a.latest_release);
-
-    useEffect(() => {
-        if (!hasRunning) {
-            return;
-        }
-
-        const interval = setInterval(() => {
-            setTick((t) => t + 1);
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [hasRunning]);
-
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'active');
     const [clientFilter, setClientFilter] = useState(filters.client_id || '');
@@ -510,7 +473,6 @@ export default function Activos({
                                 <TableHead>Entorno</TableHead>
                                 <TableHead>Region</TableHead>
                                 <TableHead>Fecha Alta</TableHead>
-                                <TableHead>Uptime</TableHead>
                                 <TableHead>Costo/Dia</TableHead>
                                 <TableHead>Estado</TableHead>
                                 <TableHead className="w-12"></TableHead>
@@ -519,7 +481,7 @@ export default function Activos({
                         <TableBody>
                             {activos.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={12} className="text-muted-foreground py-8 text-center">
+                                    <TableCell colSpan={11} className="text-muted-foreground py-8 text-center">
                                         <div className="flex flex-col items-center gap-2">
                                             <BoxIcon className="size-12 opacity-50" />
                                             <p>No se encontraron activos</p>
@@ -544,7 +506,19 @@ export default function Activos({
                                             <span className="font-mono text-sm">{activo.hostname || '-'}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="font-mono text-sm">{activo.ip_address || '-'}</span>
+                                            <div className="flex items-center gap-1">
+                                                <span className="font-mono text-sm">{activo.ip_address || '-'}</span>
+                                                {activo.ip_address && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="size-6"
+                                                        onClick={() => navigator.clipboard.writeText(activo.ip_address!)}
+                                                    >
+                                                        <CopyIcon className="size-3" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
@@ -581,11 +555,6 @@ export default function Activos({
                                                           year: 'numeric',
                                                       })
                                                     : '-'}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="font-mono text-sm">
-                                                {formatUptimeHMS(computeUptimeMs(activo))}
                                             </span>
                                         </TableCell>
                                         <TableCell>

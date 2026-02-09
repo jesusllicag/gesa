@@ -1,6 +1,7 @@
 'use client';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
+    CheckIcon,
     CopyIcon,
     DollarSignIcon,
     EditIcon,
@@ -13,8 +14,9 @@ import {
     PowerOffIcon,
     SearchIcon,
     ServerIcon,
+    ShieldAlertIcon,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
     destroy as destroyServer,
@@ -316,6 +318,26 @@ export default function Servers({
     const [isStopDialogOpen, setIsStopDialogOpen] = useState(false);
     const [stoppingServer, setStoppingServer] = useState<Server | null>(null);
     const [isStopping, setIsStopping] = useState(false);
+
+    // Secret key dialog
+    const { flash } = usePage<{ flash?: { clave_privada?: string } }>().props;
+    const [isSecretDialogOpen, setIsSecretDialogOpen] = useState(false);
+    const [secretKey, setSecretKey] = useState('');
+    const [secretCopied, setSecretCopied] = useState(false);
+
+    useEffect(() => {
+        if (flash?.clave_privada) {
+            setSecretKey(flash.clave_privada);
+            setSecretCopied(false);
+            setIsSecretDialogOpen(true);
+        }
+    }, [flash?.clave_privada]);
+
+    const copySecret = () => {
+        navigator.clipboard.writeText(secretKey);
+        setSecretCopied(true);
+        setTimeout(() => setSecretCopied(false), 2000);
+    };
 
     const isCreateFormDirty = useMemo(() => {
         return JSON.stringify(createForm) !== JSON.stringify(initialCreateForm);
@@ -1332,6 +1354,36 @@ export default function Servers({
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
+                {/* Secret Key Dialog */}
+                <Dialog open={isSecretDialogOpen} onOpenChange={setIsSecretDialogOpen}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <ShieldAlertIcon className="size-5 text-amber-500" />
+                                Clave Privada Generada
+                            </DialogTitle>
+                            <DialogDescription>
+                                Esta clave solo se mostrara una vez. Copiala y guardala en un lugar seguro antes de cerrar este dialogo.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="bg-muted flex items-center gap-2 rounded-lg border p-3">
+                                <code className="flex-1 break-all text-sm font-medium">{secretKey}</code>
+                                <Button variant="outline" size="icon" className="shrink-0" onClick={copySecret}>
+                                    {secretCopied ? <CheckIcon className="size-4 text-green-600" /> : <CopyIcon className="size-4" />}
+                                </Button>
+                            </div>
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                                <p className="font-medium">Importante:</p>
+                                <p>No podras volver a ver esta clave. Si la pierdes, deberas generar una nueva.</p>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => setIsSecretDialogOpen(false)}>Entendido</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

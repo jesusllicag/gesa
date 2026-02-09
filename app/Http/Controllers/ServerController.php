@@ -117,16 +117,25 @@ class ServerController extends Controller
             ->causedBy(auth()->user())
             ->log('Servidor creado');
 
-        return back()->with('success', 'Servidor creado correctamente.');
+        $redirect = back()->with('success', 'Servidor creado correctamente.');
+
+        if ($clavePrivada) {
+            $redirect->with('clave_privada', $clavePrivada);
+        }
+
+        return $redirect;
     }
 
     public function update(UpdateServerRequest $request, Server $server): RedirectResponse
     {
         $validated = $request->validated();
 
+        $clavePrivada = null;
+
         // Si cambia de pública a privada, generar clave
         if ($validated['conexion'] === 'privada' && $server->conexion === 'publica') {
-            $validated['clave_privada'] = Str::random(32);
+            $clavePrivada = Str::random(32);
+            $validated['clave_privada'] = $clavePrivada;
         }
 
         // Si cambia de privada a pública, eliminar clave
@@ -153,7 +162,13 @@ class ServerController extends Controller
             ->withProperties(['cambios' => $cambios])
             ->log('Servidor editado');
 
-        return back()->with('success', 'Servidor actualizado correctamente.');
+        $redirect = back()->with('success', 'Servidor actualizado correctamente.');
+
+        if ($clavePrivada) {
+            $redirect->with('clave_privada', $clavePrivada);
+        }
+
+        return $redirect;
     }
 
     public function start(Server $server): RedirectResponse

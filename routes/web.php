@@ -3,6 +3,9 @@
 use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Client\ClientAuthController;
+use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Client\ClientForcePasswordChangeController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ServerController;
 use App\Http\Controllers\Settings\PolicyController;
@@ -66,6 +69,27 @@ Route::middleware(['auth', 'verified', 'password.changed'])->group(function () {
     Route::post('servers/{server}/start', [ServerController::class, 'start'])->name('servers.start');
     Route::post('servers/{server}/stop', [ServerController::class, 'stop'])->name('servers.stop');
     Route::delete('servers/{server}', [ServerController::class, 'destroy'])->name('servers.destroy');
+});
+
+// Client Portal
+Route::prefix('client')->group(function () {
+    Route::middleware('guest:client')->group(function () {
+        Route::get('login', [ClientAuthController::class, 'showLogin'])->name('client.login');
+        Route::post('login', [ClientAuthController::class, 'login'])->name('client.login.store');
+    });
+
+    Route::middleware('auth:client')->group(function () {
+        Route::post('logout', [ClientAuthController::class, 'logout'])->name('client.logout');
+
+        Route::get('password/force-change', [ClientForcePasswordChangeController::class, 'show'])
+            ->name('client.password.force-change');
+        Route::put('password/force-change', [ClientForcePasswordChangeController::class, 'update'])
+            ->name('client.password.force-change.update');
+
+        Route::middleware('client.password.changed')->group(function () {
+            Route::get('dashboard', [ClientDashboardController::class, 'index'])->name('client.dashboard');
+        });
+    });
 });
 
 require __DIR__.'/settings.php';
