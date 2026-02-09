@@ -149,7 +149,16 @@ class ServerController extends Controller
             return back()->with('error', 'El servidor no puede ser iniciado en su estado actual.');
         }
 
-        $server->update(['estado' => 'running']);
+        $data = [
+            'estado' => 'running',
+            'ultimo_inicio' => now(),
+        ];
+
+        if ($server->fecha_alta === null) {
+            $data['fecha_alta'] = now();
+        }
+
+        $server->update($data);
 
         return back()->with('success', 'Servidor iniciado correctamente.');
     }
@@ -160,14 +169,30 @@ class ServerController extends Controller
             return back()->with('error', 'El servidor no puede ser detenido en su estado actual.');
         }
 
-        $server->update(['estado' => 'stopped']);
+        $acumulado = $server->tiempo_encendido_segundos;
+        if ($server->ultimo_inicio) {
+            $acumulado += (int) now()->diffInSeconds($server->ultimo_inicio);
+        }
+
+        $server->update([
+            'estado' => 'stopped',
+            'tiempo_encendido_segundos' => $acumulado,
+            'ultimo_inicio' => null,
+        ]);
 
         return back()->with('success', 'Servidor detenido correctamente.');
     }
 
     public function destroy(Server $server): RedirectResponse
     {
-        $server->update(['estado' => 'terminated']);
+        if ($server->estado === 'running' && $server->ultimo_inicio) {
+            $acumulado = $server->tiempo_encendido_segundos + (int) now()->diffInSeconds($server->ultimo_inicio);
+            $server->tiempo_encendido_segundos = $acumulado;
+            $server->ultimo_inicio = null;
+        }
+
+        $server->estado = 'terminated';
+        $server->save();
         $server->delete();
 
         return back()->with('success', 'Servidor eliminado correctamente.');

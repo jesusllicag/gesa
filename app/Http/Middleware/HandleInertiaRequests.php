@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'sidebarPermissions' => [
+                'canListActivos' => $user?->can('list.activos') ?? false,
                 'canListClients' => $user?->can('list.clients') ?? false,
                 'canListServers' => $user?->can('list.servers') ?? false,
                 'canListPolicies' => $user?->can('list.policies') ?? false,

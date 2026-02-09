@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,10 @@ class Server extends Model
 
     protected $fillable = [
         'nombre',
+        'client_id',
+        'hostname',
+        'ip_address',
+        'entorno',
         'region_id',
         'operating_system_id',
         'image_id',
@@ -25,6 +30,9 @@ class Server extends Model
         'clave_privada',
         'estado',
         'costo_diario',
+        'fecha_alta',
+        'ultimo_inicio',
+        'tiempo_encendido_segundos',
         'created_by',
     ];
 
@@ -33,6 +41,8 @@ class Server extends Model
         return [
             'clave_privada' => 'encrypted',
             'costo_diario' => 'decimal:4',
+            'fecha_alta' => 'datetime',
+            'ultimo_inicio' => 'datetime',
         ];
     }
 
@@ -56,8 +66,31 @@ class Server extends Model
         return $this->belongsTo(InstanceType::class);
     }
 
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return Attribute<int, never>
+     */
+    protected function tiempoEncendidoTotal(): Attribute
+    {
+        return Attribute::make(
+            get: function (): int {
+                $total = (int) $this->tiempo_encendido_segundos;
+
+                if ($this->estado === 'running' && $this->ultimo_inicio) {
+                    $total += (int) now()->diffInSeconds($this->ultimo_inicio);
+                }
+
+                return $total;
+            },
+        );
     }
 }

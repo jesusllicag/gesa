@@ -23,6 +23,7 @@ export interface NavItem {
 }
 
 export interface SidebarPermissions {
+    canListActivos: boolean;
     canListClients: boolean;
     canListServers: boolean;
     canListPolicies: boolean;

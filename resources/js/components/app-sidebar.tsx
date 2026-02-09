@@ -15,6 +15,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as indexActivos } from '@/routes/activos';
 import { index as indexClients } from '@/routes/clients';
 import { index as indexPolicies } from '@/routes/policies';
 import { index as indexServers } from '@/routes/servers';
@@ -32,12 +33,15 @@ export function AppSidebar() {
                 href: dashboard(),
                 icon: LayoutGrid,
             },
-            {
-                title: 'Activos',
-                href: '/',
-                icon: Box,
-            },
         ];
+
+        if (sidebarPermissions.canListActivos) {
+            items.push({
+                title: 'Activos',
+                href: indexActivos(),
+                icon: Box,
+            });
+        }
 
         if (sidebarPermissions.canListClients) {
             items.push({

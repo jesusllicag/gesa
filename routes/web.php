@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\ClientController;
@@ -50,6 +51,12 @@ Route::middleware(['auth', 'verified', 'password.changed'])->group(function () {
     Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
     Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+    // Activos
+    Route::get('activos', [ActivoController::class, 'index'])->name('activos.index');
+    Route::post('activos', [ActivoController::class, 'store'])->name('activos.store');
+    Route::put('activos/{server}', [ActivoController::class, 'update'])->name('activos.update');
+    Route::post('activos/{server}/dar-de-baja', [ActivoController::class, 'darDeBaja'])->name('activos.dar-de-baja');
 
     // Servers
     Route::get('servers', [ServerController::class, 'index'])->name('servers.index');

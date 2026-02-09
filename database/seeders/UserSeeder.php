@@ -41,6 +41,14 @@ class UserSeeder extends Seeder
         $adminRole->givePermissionTo($listServer, $createServer, $updateServer, $deleteServer, $runServer, $stopServer);
         $managerRole->givePermissionTo($listServer, $updateServer, $runServer, $stopServer);
 
+        // Activos
+        $listActivo = Permission::create(['name' => 'Listar Activos', 'slug' => 'list.activos']);
+        $createActivo = Permission::create(['name' => 'Crear Activos', 'slug' => 'create.activos']);
+        $updateActivo = Permission::create(['name' => 'Actualizar Activos', 'slug' => 'update.activos']);
+        $deleteActivo = Permission::create(['name' => 'Eliminar Activos', 'slug' => 'delete.activos']);
+        $adminRole->givePermissionTo($listActivo, $createActivo, $updateActivo, $deleteActivo);
+        $managerRole->givePermissionTo($listActivo, $updateActivo);
+
         // Clients
         $listClient = Permission::create(['name' => 'Listar Clientes', 'slug' => 'list.clients']);
         $createClient = Permission::create(['name' => 'Crear Clientes', 'slug' => 'create.clients']);
