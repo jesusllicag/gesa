@@ -194,21 +194,22 @@ class ServerController extends Controller
             return back()->with('error', 'El servidor no puede ser detenido en su estado actual.');
         }
 
-        $acumulado = $server->first_activated_at;
-        if ($server->latest_release) {
-            $acumulado += (int) now()->diffInSeconds($server->latest_release);
-        }
+        $elapsedMs = $server->latest_release
+            ? (int) now()->diffInMilliseconds($server->latest_release)
+            : 0;
+
+        $totalMs = $server->active_ms + $elapsedMs;
 
         $server->update([
             'estado' => 'stopped',
-            'first_activated_at' => $acumulado,
+            'active_ms' => $totalMs,
             'latest_release' => null,
         ]);
 
         activity('servidores')
             ->performedOn($server)
             ->causedBy(auth()->user())
-            ->withProperties(['tiempo_encendido_acumulado' => $acumulado])
+            ->withProperties(['active_ms' => $totalMs])
             ->log('Servidor detenido');
 
         return back()->with('success', 'Servidor detenido correctamente.');
@@ -217,8 +218,8 @@ class ServerController extends Controller
     public function destroy(Server $server): RedirectResponse
     {
         if ($server->estado === 'running' && $server->latest_release) {
-            $acumulado = $server->first_activated_at + (int) now()->diffInSeconds($server->latest_release);
-            $server->first_activated_at = $acumulado;
+            $elapsedMs = (int) now()->diffInMilliseconds($server->latest_release);
+            $server->active_ms += $elapsedMs;
             $server->latest_release = null;
         }
 

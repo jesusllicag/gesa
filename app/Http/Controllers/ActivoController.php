@@ -52,12 +52,7 @@ class ActivoController extends Controller
             })
             ->orderBy('created_at', 'desc')
             ->paginate(15)
-            ->withQueryString()
-            ->through(function ($server) {
-                $server->tiempo_encendido_total = $server->tiempo_encendido_total;
-
-                return $server;
-            });
+            ->withQueryString();
 
         $clients = Client::select('id', 'nombre')->orderBy('nombre')->get();
 
@@ -97,8 +92,6 @@ class ActivoController extends Controller
             'creator:id,name',
             'pagosMensuales' => fn ($q) => $q->orderByDesc('anio')->orderByDesc('mes'),
         ]);
-
-        $server->tiempo_encendido_total = $server->tiempo_encendido_total;
 
         $activities = Activity::query()
             ->where('subject_type', Server::class)
@@ -173,8 +166,8 @@ class ActivoController extends Controller
     public function darDeBaja(Server $server): RedirectResponse
     {
         if ($server->estado === 'running' && $server->latest_release) {
-            $seconds = (int) now()->diffInSeconds($server->latest_release);
-            $server->first_activated_at += $seconds;
+            $elapsedMs = (int) now()->diffInMilliseconds($server->latest_release);
+            $server->active_ms += $elapsedMs;
             $server->latest_release = null;
         }
 

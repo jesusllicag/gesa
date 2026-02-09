@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             OperatingSystemSeeder::class,
             ImageSeeder::class,
             InstanceTypeSeeder::class,
+            ClientSeeder::class,
+            ServerSeeder::class,
         ]);
     }
 }

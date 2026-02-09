@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 
 class Server extends Model
 {
@@ -35,7 +33,7 @@ class Server extends Model
         'costo_diario',
         'first_activated_at',
         'latest_release',
-        'first_activated_at',
+        'active_ms',
         'created_by',
     ];
 
@@ -44,7 +42,7 @@ class Server extends Model
         return [
             'clave_privada' => 'encrypted',
             'costo_diario' => 'decimal:4',
-            'first_activated_at' => 'datetime',
+            'active_ms' => 'integer',
             'latest_release' => 'datetime',
         ];
     }
@@ -90,23 +88,5 @@ class Server extends Model
             ->logOnly(['nombre', 'hostname', 'ip_address', 'entorno', 'estado', 'costo_diario', 'client_id'])
             ->logOnlyDirty()
             ->useLogName('servidores');
-    }
-
-    /**
-     * @return Attribute<int, never>
-     */
-    protected function tiempoEncendidoTotal(): Attribute
-    {
-        return Attribute::make(
-            get: function (): int {
-                $total = (int) $this->first_activated_at;
-
-                if ($this->estado === 'running' && $this->latest_release) {
-                    $total += (int) now()->diffInSeconds($this->latest_release);
-                }
-
-                return $total;
-            },
-        );
     }
 }

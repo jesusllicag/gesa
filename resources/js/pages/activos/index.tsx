@@ -9,7 +9,7 @@ import {
     SearchIcon,
     Trash2Icon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
     darDeBaja,
@@ -97,7 +97,8 @@ interface Activo {
     estado: 'running' | 'stopped' | 'pending' | 'terminated';
     costo_diario: number;
     first_activated_at: string | null;
-    tiempo_encendido_total: number;
+    latest_release: string | null;
+    active_ms: number;
     deleted_at: string | null;
     client: {
         id: number;
@@ -163,27 +164,24 @@ const entornoColors: Record<string, string> = {
     PROD: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 };
 
-function formatUptime(seconds: number): string {
-    if (seconds <= 0) {
+function formatUptimeHMS(ms: number): string {
+    if (ms <= 0) {
         return '-';
     }
 
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-    const parts: string[] = [];
-    if (days > 0) {
-        parts.push(`${days}d`);
-    }
-    if (hours > 0) {
-        parts.push(`${hours}h`);
-    }
-    if (minutes > 0 || parts.length === 0) {
-        parts.push(`${minutes}m`);
-    }
+    return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
+}
 
-    return parts.join(' ');
+function computeUptimeMs(activo: Activo): number {
+    if (activo.estado === 'running' && activo.latest_release) {
+        return activo.active_ms + (Date.now() - Date.parse(activo.latest_release));
+    }
+    return activo.active_ms;
 }
 
 export default function Activos({
@@ -199,6 +197,22 @@ export default function Activos({
     filters: { search: string; status: string; client_id: string };
     permissions: Permissions;
 }) {
+    const [, setTick] = useState(0);
+
+    const hasRunning = activos.data.some((a) => a.estado === 'running' && a.latest_release);
+
+    useEffect(() => {
+        if (!hasRunning) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setTick((t) => t + 1);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [hasRunning]);
+
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'active');
     const [clientFilter, setClientFilter] = useState(filters.client_id || '');
@@ -571,7 +585,7 @@ export default function Activos({
                                         </TableCell>
                                         <TableCell>
                                             <span className="font-mono text-sm">
-                                                {formatUptime(activo.tiempo_encendido_total)}
+                                                {formatUptimeHMS(computeUptimeMs(activo))}
                                             </span>
                                         </TableCell>
                                         <TableCell>

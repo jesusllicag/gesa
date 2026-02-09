@@ -12,7 +12,7 @@ import {
     ServerIcon,
     UserIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { show as showActivo } from '@/actions/App/Http/Controllers/ActivoController';
 import { Badge } from '@/components/ui/badge';
@@ -119,7 +119,8 @@ interface ServerDetail {
     disco_tipo: string;
     conexion: string;
     first_activated_at: string | null;
-    tiempo_encendido_total: number;
+    latest_release: string | null;
+    active_ms: number;
     created_at: string;
     deleted_at: string | null;
     client: Client | null;
@@ -143,27 +144,17 @@ const mesesNombres = [
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
-function formatUptime(seconds: number): string {
-    if (seconds <= 0) {
-        return '0m';
+function formatUptimeHMS(ms: number): string {
+    if (ms <= 0) {
+        return '00:00:00';
     }
 
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-    const parts: string[] = [];
-    if (days > 0) {
-        parts.push(`${days}d`);
-    }
-    if (hours > 0) {
-        parts.push(`${hours}h`);
-    }
-    if (minutes > 0 || parts.length === 0) {
-        parts.push(`${minutes}m`);
-    }
-
-    return parts.join(' ');
+    return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
 }
 
 function formatDate(dateStr: string): string {
@@ -196,6 +187,28 @@ export default function ActivoShow({
     pagosPendientes: number;
 }) {
     const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set());
+
+    const computeUptime = () => {
+        if (server.estado === 'running' && server.latest_release) {
+            return server.active_ms + (Date.now() - Date.parse(server.latest_release));
+        }
+        return server.active_ms;
+    };
+
+    const [uptimeMs, setUptimeMs] = useState(computeUptime);
+
+    useEffect(() => {
+        if (server.estado !== 'running' || !server.latest_release) {
+            setUptimeMs(server.active_ms);
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setUptimeMs(computeUptime());
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [server.active_ms, server.latest_release, server.estado]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Activos', href: indexActivos().url },
@@ -316,7 +329,7 @@ export default function ActivoShow({
                             <ClockIcon className="text-muted-foreground size-4" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{formatUptime(server.tiempo_encendido_total)}</div>
+                            <div className="font-mono text-2xl font-bold">{formatUptimeHMS(uptimeMs)}</div>
                             <p className="text-muted-foreground text-xs">tiempo encendido total</p>
                         </CardContent>
                     </Card>

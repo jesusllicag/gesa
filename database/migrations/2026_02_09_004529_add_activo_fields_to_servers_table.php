@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('entorno')->nullable()->after('hostname');
             $table->timestamp('first_activated_at')->nullable()->after('costo_diario');
             $table->timestamp('latest_release')->nullable()->after('first_activated_at');
-            $table->bigInteger('first_activated_at')->default(0)->after('latest_release');
+            $table->bigInteger('active_seconds')->default(0)->after('latest_release');
         });
     }
 
@@ -34,7 +34,7 @@ return new class extends Migration
                 'entorno',
                 'first_activated_at',
                 'latest_release',
-                'first_activated_at',
+                'active_seconds',
             ]);
         });
     }
