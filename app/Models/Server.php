@@ -33,9 +33,9 @@ class Server extends Model
         'clave_privada',
         'estado',
         'costo_diario',
-        'fecha_alta',
-        'ultimo_inicio',
-        'tiempo_encendido_segundos',
+        'first_activated_at',
+        'latest_release',
+        'first_activated_at',
         'created_by',
     ];
 
@@ -44,8 +44,8 @@ class Server extends Model
         return [
             'clave_privada' => 'encrypted',
             'costo_diario' => 'decimal:4',
-            'fecha_alta' => 'datetime',
-            'ultimo_inicio' => 'datetime',
+            'first_activated_at' => 'datetime',
+            'latest_release' => 'datetime',
         ];
     }
 
@@ -99,10 +99,10 @@ class Server extends Model
     {
         return Attribute::make(
             get: function (): int {
-                $total = (int) $this->tiempo_encendido_segundos;
+                $total = (int) $this->first_activated_at;
 
-                if ($this->estado === 'running' && $this->ultimo_inicio) {
-                    $total += (int) now()->diffInSeconds($this->ultimo_inicio);
+                if ($this->estado === 'running' && $this->latest_release) {
+                    $total += (int) now()->diffInSeconds($this->latest_release);
                 }
 
                 return $total;

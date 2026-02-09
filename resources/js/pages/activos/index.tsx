@@ -12,6 +12,13 @@ import {
 import { useState } from 'react';
 
 import {
+    darDeBaja,
+    show as showActivo,
+    store as storeActivo,
+    update as updateActivo,
+} from '@/actions/App/Http/Controllers/ActivoController';
+import { start as startServer } from '@/actions/App/Http/Controllers/ServerController';
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -66,16 +73,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { index as indexActivos } from '@/routes/activos';
 import { BreadcrumbItem } from '@/types';
 
-import {
-    darDeBaja,
-    show as showActivo,
-    store as storeActivo,
-    update as updateActivo,
-} from '@/actions/App/Http/Controllers/ActivoController';
-import { start as startServer } from '@/actions/App/Http/Controllers/ServerController';
-import { index as indexActivos } from '@/routes/activos';
 
 interface Client {
     id: number;
@@ -96,7 +96,7 @@ interface Activo {
     entorno: 'DEV' | 'STG' | 'QAS' | 'PROD' | null;
     estado: 'running' | 'stopped' | 'pending' | 'terminated';
     costo_diario: number;
-    fecha_alta: string | null;
+    first_activated_at: string | null;
     tiempo_encendido_total: number;
     deleted_at: string | null;
     client: {
@@ -560,8 +560,8 @@ export default function Activos({
                                         </TableCell>
                                         <TableCell>
                                             <span className="text-sm">
-                                                {activo.fecha_alta
-                                                    ? new Date(activo.fecha_alta).toLocaleDateString('es-ES', {
+                                                {activo.first_activated_at
+                                                    ? new Date(activo.first_activated_at).toLocaleDateString('es-ES', {
                                                           day: '2-digit',
                                                           month: '2-digit',
                                                           year: 'numeric',

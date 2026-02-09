@@ -4,6 +4,11 @@ import { MoreHorizontalIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+    destroy as destroyClient,
+    store as storeClient,
+    update as updateClient,
+} from '@/actions/App/Http/Controllers/ClientController';
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -58,14 +63,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { index as indexClients } from '@/routes/clients';
 import { BreadcrumbItem } from '@/types';
 
-import {
-    destroy as destroyClient,
-    store as storeClient,
-    update as updateClient,
-} from '@/actions/App/Http/Controllers/ClientController';
-import { index as indexClients } from '@/routes/clients';
 
 interface Creator {
     id: number;

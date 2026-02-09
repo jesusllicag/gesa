@@ -168,11 +168,11 @@ class ServerController extends Controller
 
         $data = [
             'estado' => 'running',
-            'ultimo_inicio' => now(),
+            'latest_release' => now(),
         ];
 
-        if ($server->fecha_alta === null) {
-            $data['fecha_alta'] = now();
+        if ($server->first_activated_at === null) {
+            $data['first_activated_at'] = now();
         }
 
         $estadoAnterior = $server->estado;
@@ -194,15 +194,15 @@ class ServerController extends Controller
             return back()->with('error', 'El servidor no puede ser detenido en su estado actual.');
         }
 
-        $acumulado = $server->tiempo_encendido_segundos;
-        if ($server->ultimo_inicio) {
-            $acumulado += (int) now()->diffInSeconds($server->ultimo_inicio);
+        $acumulado = $server->first_activated_at;
+        if ($server->latest_release) {
+            $acumulado += (int) now()->diffInSeconds($server->latest_release);
         }
 
         $server->update([
             'estado' => 'stopped',
-            'tiempo_encendido_segundos' => $acumulado,
-            'ultimo_inicio' => null,
+            'first_activated_at' => $acumulado,
+            'latest_release' => null,
         ]);
 
         activity('servidores')
@@ -216,10 +216,10 @@ class ServerController extends Controller
 
     public function destroy(Server $server): RedirectResponse
     {
-        if ($server->estado === 'running' && $server->ultimo_inicio) {
-            $acumulado = $server->tiempo_encendido_segundos + (int) now()->diffInSeconds($server->ultimo_inicio);
-            $server->tiempo_encendido_segundos = $acumulado;
-            $server->ultimo_inicio = null;
+        if ($server->estado === 'running' && $server->latest_release) {
+            $acumulado = $server->first_activated_at + (int) now()->diffInSeconds($server->latest_release);
+            $server->first_activated_at = $acumulado;
+            $server->latest_release = null;
         }
 
         $server->estado = 'terminated';

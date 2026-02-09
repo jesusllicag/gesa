@@ -17,6 +17,13 @@ import {
 import { useMemo, useState } from 'react';
 
 import {
+    destroy as destroyServer,
+    start as startServer,
+    stop as stopServer,
+    store as storeServer,
+    update as updateServer,
+} from '@/actions/App/Http/Controllers/ServerController';
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -71,16 +78,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { index as indexServers } from '@/routes/servers';
 import { BreadcrumbItem } from '@/types';
 
-import {
-    destroy as destroyServer,
-    start as startServer,
-    stop as stopServer,
-    store as storeServer,
-    update as updateServer,
-} from '@/actions/App/Http/Controllers/ServerController';
-import { index as indexServers } from '@/routes/servers';
 
 interface Creator {
     id: number;

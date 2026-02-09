@@ -1,16 +1,12 @@
 'use client';
 import { Head, router, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-import AppLayout from '@/layouts/app-layout';
-import { index as indexPolicies } from '@/routes/policies';
 import {
     destroy as destroyPolicy,
     store as storePolicy,
     update as updatePolicies,
 } from '@/actions/App/Http/Controllers/Settings/PolicyController';
-import { BreadcrumbItem } from '@/types';
-
 import {
     AlertDialog,
     AlertDialogAction,
@@ -44,6 +40,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import AppLayout from '@/layouts/app-layout';
+import { index as indexPolicies } from '@/routes/policies';
+import { BreadcrumbItem } from '@/types';
 
 interface Role {
     id: number;
@@ -95,23 +94,28 @@ export default function Policies({
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Sync selectedRoleId when a new role is created via flash
+    const [prevFlashRoleId, setPrevFlashRoleId] = useState(flash?.newRoleId);
+    if (flash?.newRoleId !== prevFlashRoleId) {
+        setPrevFlashRoleId(flash?.newRoleId);
+        if (flash?.newRoleId) {
+            setSelectedRoleId(flash.newRoleId.toString());
+        }
+    }
+
     const selectedRole = roles?.find((r) => r.id.toString() === selectedRoleId);
     const isProtectedRole = selectedRole && ['admin', 'manager'].includes(selectedRole.name.toLowerCase());
 
-    useEffect(() => {
-        if (flash?.newRoleId) {
-            setSelectedRoleId(flash.newRoleId.toString());
-            setSelectedPermissions([]);
-        }
-    }, [flash?.newRoleId]);
-
-    useEffect(() => {
+    // Sync permissions when selected role changes
+    const [prevSelectedRoleId, setPrevSelectedRoleId] = useState(selectedRoleId);
+    if (selectedRoleId !== prevSelectedRoleId) {
+        setPrevSelectedRoleId(selectedRoleId);
         if (selectedRole) {
             setSelectedPermissions(selectedRole.permissions.map((p) => p.id));
         } else {
             setSelectedPermissions([]);
         }
-    }, [selectedRoleId, roles]);
+    }
 
     const handleRoleChange = (roleId: string) => {
         setSelectedRoleId(roleId);

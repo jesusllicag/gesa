@@ -15,9 +15,9 @@ return new class extends Migration
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete()->after('id');
             $table->string('hostname')->nullable()->after('nombre');
             $table->string('entorno')->nullable()->after('hostname');
-            $table->timestamp('fecha_alta')->nullable()->after('costo_diario');
-            $table->timestamp('ultimo_inicio')->nullable()->after('fecha_alta');
-            $table->bigInteger('tiempo_encendido_segundos')->default(0)->after('ultimo_inicio');
+            $table->timestamp('first_activated_at')->nullable()->after('costo_diario');
+            $table->timestamp('latest_release')->nullable()->after('first_activated_at');
+            $table->bigInteger('first_activated_at')->default(0)->after('latest_release');
         });
     }
 
@@ -32,9 +32,9 @@ return new class extends Migration
                 'client_id',
                 'hostname',
                 'entorno',
-                'fecha_alta',
-                'ultimo_inicio',
-                'tiempo_encendido_segundos',
+                'first_activated_at',
+                'latest_release',
+                'first_activated_at',
             ]);
         });
     }

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { show as showActivo } from '@/actions/App/Http/Controllers/ActivoController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,10 +35,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { index as indexActivos } from '@/routes/activos';
 import { BreadcrumbItem } from '@/types';
 
-import { show as showActivo } from '@/actions/App/Http/Controllers/ActivoController';
-import { index as indexActivos } from '@/routes/activos';
 
 interface Client {
     id: number;
@@ -118,7 +118,7 @@ interface ServerDetail {
     disco_gb: number;
     disco_tipo: string;
     conexion: string;
-    fecha_alta: string | null;
+    first_activated_at: string | null;
     tiempo_encendido_total: number;
     created_at: string;
     deleted_at: string | null;
@@ -427,7 +427,7 @@ export default function ActivoShow({
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground text-sm">Fecha de Alta</dt>
-                                        <dd>{server.fecha_alta ? formatDate(server.fecha_alta) : '-'}</dd>
+                                        <dd>{server.first_activated_at ? formatDate(server.first_activated_at) : '-'}</dd>
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground text-sm">Creado por</dt>

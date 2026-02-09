@@ -172,10 +172,10 @@ class ActivoController extends Controller
 
     public function darDeBaja(Server $server): RedirectResponse
     {
-        if ($server->estado === 'running' && $server->ultimo_inicio) {
-            $seconds = (int) now()->diffInSeconds($server->ultimo_inicio);
-            $server->tiempo_encendido_segundos += $seconds;
-            $server->ultimo_inicio = null;
+        if ($server->estado === 'running' && $server->latest_release) {
+            $seconds = (int) now()->diffInSeconds($server->latest_release);
+            $server->first_activated_at += $seconds;
+            $server->latest_release = null;
         }
 
         $server->estado = 'terminated';

@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useMemo } from 'react';
 import { BookOpen, Box, Folder, LayoutGrid, Server, User, Users } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -21,6 +21,7 @@ import { index as indexPolicies } from '@/routes/policies';
 import { index as indexServers } from '@/routes/servers';
 import { index as indexUsers } from '@/routes/users';
 import { type NavItem, type SharedData } from '@/types';
+
 import AppLogo from './app-logo';
 
 export function AppSidebar() {

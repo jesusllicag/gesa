@@ -4,6 +4,11 @@ import { MoreHorizontalIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import {
+    destroy as destroyUser,
+    store as storeUser,
+    update as updateUser,
+} from '@/actions/App/Http/Controllers/UserController';
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -52,14 +57,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { index as indexUsers } from '@/routes/users';
 import { BreadcrumbItem, SharedData } from '@/types';
 
-import {
-    destroy as destroyUser,
-    store as storeUser,
-    update as updateUser,
-} from '@/actions/App/Http/Controllers/UserController';
-import { index as indexUsers } from '@/routes/users';
 
 interface Role {
     id: number;
