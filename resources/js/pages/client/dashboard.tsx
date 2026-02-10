@@ -5,13 +5,13 @@ import {
     CopyIcon,
     GlobeIcon,
     LockIcon,
-    LogOutIcon,
     PlusIcon,
     ServerIcon,
     XCircleIcon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { ClientPortalHeader } from '@/components/client-portal-header';
 import { CostPreview } from '@/components/cost-preview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -134,13 +134,6 @@ interface DashboardProps {
     operatingSystems: OperatingSystem[];
     instanceTypes: InstanceType[];
     regions: Region[];
-    clientAuth: {
-        client: {
-            id: number;
-            nombre: string;
-            email: string;
-        };
-    };
 }
 
 const entornoColors: Record<string, string> = {
@@ -183,14 +176,10 @@ const initialCreateForm = {
     medio_pago: '' as string,
 };
 
-export default function ClientDashboard({ servers, solicitudes, operatingSystems, instanceTypes, regions, clientAuth }: DashboardProps) {
+export default function ClientDashboard({ servers, solicitudes, operatingSystems, instanceTypes, regions }: DashboardProps) {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [createForm, setCreateForm] = useState({ ...initialCreateForm });
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleLogout = () => {
-        router.post('/client/logout');
-    };
 
     const getStatusBadge = (estado: Server['estado']) => {
         const config = statusConfig[estado];
@@ -246,24 +235,12 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
             <Head title="Dashboard - Portal de Clientes" />
 
             <div className="bg-background min-h-screen">
-                <header className="border-b">
-                    <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-                        <div>
-                            <h1 className="text-xl font-semibold">Portal de Clientes</h1>
-                            <p className="text-muted-foreground text-sm">{clientAuth.client.nombre}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button onClick={() => setIsCreateDialogOpen(true)}>
-                                <PlusIcon className="mr-2 size-4" />
-                                Solicitar Servidor
-                            </Button>
-                            <Button variant="outline" onClick={handleLogout}>
-                                <LogOutIcon className="mr-2 size-4" />
-                                Cerrar Sesion
-                            </Button>
-                        </div>
-                    </div>
-                </header>
+                <ClientPortalHeader>
+                    <Button onClick={() => setIsCreateDialogOpen(true)}>
+                        <PlusIcon className="mr-2 size-4" />
+                        Solicitar Servidor
+                    </Button>
+                </ClientPortalHeader>
 
                 <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                     {/* Servidores asignados */}

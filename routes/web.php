@@ -4,8 +4,11 @@ use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Client\ClientAuthController;
+use App\Http\Controllers\Client\ClientCardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientForcePasswordChangeController;
+use App\Http\Controllers\Client\ClientPasswordController;
+use App\Http\Controllers\Client\ClientProfileController;
 use App\Http\Controllers\Client\ClientSolicitudController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ServerController;
@@ -97,6 +100,12 @@ Route::prefix('client')->group(function () {
         Route::middleware('client.password.changed')->group(function () {
             Route::get('dashboard', [ClientDashboardController::class, 'index'])->name('client.dashboard');
             Route::post('solicitudes', [ClientSolicitudController::class, 'store'])->name('client.solicitudes.store');
+
+            Route::get('profile', [ClientProfileController::class, 'edit'])->name('client.profile.edit');
+            Route::put('profile', [ClientProfileController::class, 'update'])->name('client.profile.update');
+            Route::put('password', [ClientPasswordController::class, 'update'])->name('client.password.update');
+            Route::post('cards', [ClientCardController::class, 'store'])->name('client.cards.store');
+            Route::delete('cards/{tarjeta}', [ClientCardController::class, 'destroy'])->name('client.cards.destroy');
         });
     });
 });

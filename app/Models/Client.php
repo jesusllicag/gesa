@@ -29,6 +29,7 @@ class Client extends Authenticatable
         'tipo_documento',
         'numero_documento',
         'must_change_password',
+        'mp_customer_id',
         'created_by',
     ];
 
@@ -72,5 +73,10 @@ class Client extends Authenticatable
     public function solicitudes(): HasMany
     {
         return $this->hasMany(SolicitudServidor::class);
+    }
+
+    public function tarjetas(): HasMany
+    {
+        return $this->hasMany(TarjetaCliente::class);
     }
 }

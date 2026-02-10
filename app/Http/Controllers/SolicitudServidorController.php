@@ -66,6 +66,8 @@ class SolicitudServidorController extends Controller
             $clavePrivada = Str::random(32);
         }
 
+        $ipAddress = sprintf('10.%d.%d.%d', rand(0, 255), rand(0, 255), rand(1, 254));
+
         Server::create([
             'nombre' => $solicitudServidor->nombre,
             'client_id' => $solicitudServidor->client_id,
@@ -80,6 +82,7 @@ class SolicitudServidorController extends Controller
             'clave_privada' => $clavePrivada,
             'estado' => 'pending',
             'costo_diario' => $costoDiario,
+            'ip_address' => $ipAddress,
             'created_by' => auth()->id(),
         ]);
 
