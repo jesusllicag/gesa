@@ -11,6 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::dropIfExists('tarjetas_cliente');
+
+        if (Schema::hasColumn('clients', 'mp_customer_id')) {
+            Schema::table('clients', function (Blueprint $table) {
+                $table->dropColumn('mp_customer_id');
+            });
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
         Schema::create('tarjetas_cliente', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained('clients')->cascadeOnDelete();
@@ -23,15 +37,12 @@ return new class extends Migration
             $table->string('cardholder_name');
             $table->string('payment_type');
             $table->timestamps();
+
             $table->unique(['client_id', 'mp_card_id']);
         });
-    }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('tarjetas_cliente');
+        Schema::table('clients', function (Blueprint $table) {
+            $table->string('mp_customer_id')->nullable();
+        });
     }
 };

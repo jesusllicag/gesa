@@ -4,7 +4,6 @@ use App\Http\Controllers\ActivoController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Client\ClientAuthController;
-use App\Http\Controllers\Client\ClientCardController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientForcePasswordChangeController;
 use App\Http\Controllers\Client\ClientPasswordController;
@@ -104,8 +103,6 @@ Route::prefix('client')->group(function () {
             Route::get('profile', [ClientProfileController::class, 'edit'])->name('client.profile.edit');
             Route::put('profile', [ClientProfileController::class, 'update'])->name('client.profile.update');
             Route::put('password', [ClientPasswordController::class, 'update'])->name('client.password.update');
-            Route::post('cards', [ClientCardController::class, 'store'])->name('client.cards.store');
-            Route::delete('cards/{tarjeta}', [ClientCardController::class, 'destroy'])->name('client.cards.destroy');
         });
     });
 });

@@ -19,8 +19,6 @@ class ClientProfileController extends Controller
 
         return Inertia::render('client/profile', [
             'client' => $client->only('id', 'nombre', 'email', 'tipo_documento', 'numero_documento'),
-            'tarjetas' => $client->tarjetas()->latest()->get(),
-            'mpPublicKey' => config('services.mercadopago.public_key'),
         ]);
     }
 
