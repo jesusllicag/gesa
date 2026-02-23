@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { download as downloadServerPdf } from '@/actions/App/Http/Controllers/Client/ClientServerPdfController';
 import { ClientPortalHeader } from '@/components/client-portal-header';
 import { CostPreview } from '@/components/cost-preview';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { download as downloadServerPdf } from '@/actions/App/Http/Controllers/Client/ClientServerPdfController';
 import { calcularCostoDiario } from '@/lib/server-costs';
 
 declare global {

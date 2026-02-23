@@ -15,7 +15,7 @@ import {
     ServerIcon,
     ShieldAlertIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
     destroy as destroyServer,
@@ -24,6 +24,7 @@ import {
     store as storeServer,
     update as updateServer,
 } from '@/actions/App/Http/Controllers/ServerController';
+import { CostPreview } from '@/components/cost-preview';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -78,7 +79,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { CostPreview } from '@/components/cost-preview';
 import AppLayout from '@/layouts/app-layout';
 import { calcularCostoDiario } from '@/lib/server-costs';
 import { index as indexServers } from '@/routes/servers';
@@ -268,17 +268,9 @@ export default function Servers({
 
     // Secret key dialog
     const { flash } = usePage<{ flash?: { clave_privada?: string } }>().props;
-    const [isSecretDialogOpen, setIsSecretDialogOpen] = useState(false);
-    const [secretKey, setSecretKey] = useState('');
+    const [isSecretDialogOpen, setIsSecretDialogOpen] = useState(!!flash?.clave_privada);
+    const secretKey = flash?.clave_privada ?? '';
     const [secretCopied, setSecretCopied] = useState(false);
-
-    useEffect(() => {
-        if (flash?.clave_privada) {
-            setSecretKey(flash.clave_privada);
-            setSecretCopied(false);
-            setIsSecretDialogOpen(true);
-        }
-    }, [flash?.clave_privada]);
 
     const copySecret = () => {
         navigator.clipboard.writeText(secretKey);

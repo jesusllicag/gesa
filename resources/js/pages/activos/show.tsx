@@ -189,27 +189,26 @@ export default function ActivoShow({
 }) {
     const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set());
 
-    const computeUptime = () => {
-        if (server.estado === 'running' && server.latest_release) {
-            return server.active_ms + (Date.now() - Date.parse(server.latest_release));
-        }
-        return server.active_ms;
-    };
-
-    const [uptimeMs, setUptimeMs] = useState(computeUptime);
+    const [uptimeMs, setUptimeMs] = useState(() =>
+        server.estado === 'running' && server.latest_release
+            ? server.active_ms + (Date.now() - Date.parse(server.latest_release))
+            : server.active_ms,
+    );
 
     useEffect(() => {
         if (server.estado !== 'running' || !server.latest_release) {
-            setUptimeMs(server.active_ms);
             return;
         }
 
+        const latestRelease = server.latest_release;
+        const baseMs = server.active_ms;
+
         const interval = setInterval(() => {
-            setUptimeMs(computeUptime());
+            setUptimeMs(baseMs + (Date.now() - Date.parse(latestRelease)));
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [server.active_ms, server.latest_release, server.estado]);
+    }, [server.estado, server.latest_release, server.active_ms]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Activos', href: indexActivos().url },

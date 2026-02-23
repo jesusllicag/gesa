@@ -41,7 +41,7 @@ export default function ClientProfile({ client }: ProfileProps) {
                                 action={updateProfile.url()}
                                 method="put"
                             >
-                                {({ processing, errors, wasSuccessful, recentlySuccessful }) => (
+                                {({ processing, errors, recentlySuccessful }) => (
                                     <div className="grid gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="nombre">Nombre</Label>

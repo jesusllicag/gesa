@@ -274,7 +274,7 @@ export default function ServerApproval({ server, mercadopago_public_key }: Props
                     onFinish: () => setIsSubmitting(false),
                 }
             );
-        } catch (e) {
+        } catch {
             setPaymentError('Error al tokenizar la tarjeta. Verifica los datos ingresados.');
             setIsSubmitting(false);
         }

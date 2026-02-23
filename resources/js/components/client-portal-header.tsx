@@ -3,10 +3,10 @@ import { LogOutIcon, MenuIcon, XIcon } from 'lucide-react';
 import type { PropsWithChildren } from 'react';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { edit as profileEdit } from '@/actions/App/Http/Controllers/Client/ClientProfileController';
-import { index as dashboardIndex } from '@/actions/App/Http/Controllers/Client/ClientDashboardController';
 import { logout } from '@/actions/App/Http/Controllers/Client/ClientAuthController';
+import { index as dashboardIndex } from '@/actions/App/Http/Controllers/Client/ClientDashboardController';
+import { edit as profileEdit } from '@/actions/App/Http/Controllers/Client/ClientProfileController';
+import { Button } from '@/components/ui/button';
 
 interface ClientPortalHeaderProps {
     children?: PropsWithChildren['children'];
