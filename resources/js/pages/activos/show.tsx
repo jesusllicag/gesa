@@ -9,12 +9,13 @@ import {
     ClockIcon,
     CreditCardIcon,
     DollarSignIcon,
+    DownloadIcon,
     ServerIcon,
     UserIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { show as showActivo } from '@/actions/App/Http/Controllers/ActivoController';
+import { pdfActivo, show as showActivo } from '@/actions/App/Http/Controllers/ActivoController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -267,12 +268,18 @@ export default function ActivoShow({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Activo - ${server.nombre}`} />
             <div className="flex h-full flex-1 flex-col gap-6 rounded-xl p-4">
-                {/* Back button */}
-                <div>
+                {/* Back button + PDF */}
+                <div className="flex items-center justify-between">
                     <Link href={indexActivos().url} className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors">
                         <ArrowLeftIcon className="size-4" />
                         Volver a Activos
                     </Link>
+                    <a href={pdfActivo(server.id).url} target="_blank" rel="noreferrer">
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <DownloadIcon className="size-4" />
+                            Descargar PDF
+                        </Button>
+                    </a>
                 </div>
 
                 {/* Summary cards */}

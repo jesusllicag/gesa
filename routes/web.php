@@ -9,6 +9,7 @@ use App\Http\Controllers\Client\ClientForcePasswordChangeController;
 use App\Http\Controllers\Client\ClientPasswordController;
 use App\Http\Controllers\Client\ClientProfileController;
 use App\Http\Controllers\Client\ClientServerApprovalController;
+use App\Http\Controllers\Client\ClientServerPdfController;
 use App\Http\Controllers\Client\ClientSolicitudController;
 use App\Http\Controllers\Client\PagoTarjetaController;
 use App\Http\Controllers\ClientController;
@@ -67,6 +68,7 @@ Route::prefix('admin')->group(function () {
         Route::get('activos/{server}', [ActivoController::class, 'show'])->name('activos.show');
         Route::put('activos/{server}', [ActivoController::class, 'update'])->name('activos.update');
         Route::post('activos/{server}/dar-de-baja', [ActivoController::class, 'darDeBaja'])->name('activos.dar-de-baja');
+        Route::get('activos/{server}/pdf', [ActivoController::class, 'pdfActivo'])->name('activos.pdf');
 
         // Servers
         Route::get('servers', [ServerController::class, 'index'])->name('servers.index');
@@ -106,6 +108,9 @@ Route::prefix('client')->group(function () {
             Route::get('profile', [ClientProfileController::class, 'edit'])->name('client.profile.edit');
             Route::put('profile', [ClientProfileController::class, 'update'])->name('client.profile.update');
             Route::put('password', [ClientPasswordController::class, 'update'])->name('client.password.update');
+
+            // Server PDF download
+            Route::get('servers/{server}/pdf', [ClientServerPdfController::class, 'download'])->name('client.servers.pdf');
 
             // Server approval
             Route::get('servers/{token}/review', [ClientServerApprovalController::class, 'show'])->name('client.servers.review');

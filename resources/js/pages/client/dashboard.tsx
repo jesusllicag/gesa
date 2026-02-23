@@ -4,6 +4,7 @@ import {
     CheckCircleIcon,
     ClockIcon,
     CopyIcon,
+    DownloadIcon,
     GlobeIcon,
     LockIcon,
     PlusIcon,
@@ -42,6 +43,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { download as downloadServerPdf } from '@/actions/App/Http/Controllers/Client/ClientServerPdfController';
 import { calcularCostoDiario } from '@/lib/server-costs';
 
 declare global {
@@ -573,12 +575,13 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                                     <TableHead>Region</TableHead>
                                     <TableHead>Estado</TableHead>
                                     <TableHead>Costo/Dia</TableHead>
+                                    <TableHead></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {servers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-muted-foreground py-8 text-center">
+                                        <TableCell colSpan={9} className="text-muted-foreground py-8 text-center">
                                             <div className="flex flex-col items-center gap-2">
                                                 <ServerIcon className="size-12 opacity-50" />
                                                 <p>No tienes servidores asignados</p>
@@ -643,6 +646,15 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                                                 <span className="font-mono text-sm font-medium text-green-700 dark:text-green-400">
                                                     ${Number(server.costo_diario).toFixed(2)}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {server.estado === 'running' && (
+                                                    <a href={downloadServerPdf(server.id).url} target="_blank" rel="noreferrer">
+                                                        <Button variant="ghost" size="icon" className="size-7" title="Descargar PDF">
+                                                            <DownloadIcon className="size-4" />
+                                                        </Button>
+                                                    </a>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))
