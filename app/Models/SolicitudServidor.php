@@ -26,6 +26,8 @@ class SolicitudServidor extends Model
         'disco_tipo',
         'conexion',
         'medio_pago',
+        'mp_payment_id',
+        'mp_payment_status',
         'costo_diario_estimado',
         'estado',
         'motivo_rechazo',
@@ -38,6 +40,8 @@ class SolicitudServidor extends Model
         return [
             'costo_diario_estimado' => 'decimal:4',
             'reviewed_at' => 'datetime',
+            'mp_payment_id' => 'string',
+            'mp_payment_status' => 'string',
         ];
     }
 

@@ -50,6 +50,7 @@ class ClientDashboardController extends Controller
             'operatingSystems' => $operatingSystems,
             'instanceTypes' => $instanceTypes,
             'regions' => $regions,
+            'mercadopago_public_key' => config('mercadopago.public_key'),
         ]);
     }
 }

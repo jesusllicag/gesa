@@ -9,6 +9,7 @@ use App\Http\Controllers\Client\ClientForcePasswordChangeController;
 use App\Http\Controllers\Client\ClientPasswordController;
 use App\Http\Controllers\Client\ClientProfileController;
 use App\Http\Controllers\Client\ClientSolicitudController;
+use App\Http\Controllers\Client\PagoTarjetaController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ServerController;
 use App\Http\Controllers\Settings\PolicyController;
@@ -99,6 +100,7 @@ Route::prefix('client')->group(function () {
         Route::middleware('client.password.changed')->group(function () {
             Route::get('dashboard', [ClientDashboardController::class, 'index'])->name('client.dashboard');
             Route::post('solicitudes', [ClientSolicitudController::class, 'store'])->name('client.solicitudes.store');
+            Route::post('pagos/tarjeta', [PagoTarjetaController::class, 'store'])->name('client.pagos.tarjeta');
 
             Route::get('profile', [ClientProfileController::class, 'edit'])->name('client.profile.edit');
             Route::put('profile', [ClientProfileController::class, 'update'])->name('client.profile.update');
