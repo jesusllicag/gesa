@@ -135,7 +135,7 @@ interface Server {
     disco_gb: number;
     disco_tipo: 'SSD' | 'HDD';
     conexion: 'publica' | 'privada';
-    estado: 'running' | 'stopped' | 'pending' | 'terminated';
+    estado: 'running' | 'stopped' | 'pending' | 'terminated' | 'pendiente_aprobacion';
     costo_diario: number;
     deleted_at: string | null;
     created_at: string;
@@ -187,6 +187,12 @@ interface Permissions {
     canRun: boolean;
 }
 
+interface Client {
+    id: number;
+    nombre: string;
+    email: string;
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Servidores',
@@ -202,6 +208,7 @@ const statusFilters = [
 
 const initialCreateForm = {
     nombre: '',
+    client_id: '',
     region_id: '',
     operating_system_id: '',
     image_id: '',
@@ -217,6 +224,7 @@ export default function Servers({
     operatingSystems,
     instanceTypes,
     regions,
+    clients,
     filters,
     permissions,
 }: {
@@ -224,6 +232,7 @@ export default function Servers({
     operatingSystems: OperatingSystem[];
     instanceTypes: InstanceType[];
     regions: Region[];
+    clients: Client[];
     filters: { search: string; status: string };
     permissions: Permissions;
 }) {
@@ -365,6 +374,7 @@ export default function Servers({
             storeServer().url,
             {
                 ...createForm,
+                client_id: createForm.client_id ? Number(createForm.client_id) : null,
                 region_id: Number(createForm.region_id),
                 operating_system_id: Number(createForm.operating_system_id),
                 image_id: Number(createForm.image_id),
@@ -508,13 +518,14 @@ export default function Servers({
             );
         }
 
-        const statusConfig = {
-            running: { label: 'Ejecutando', variant: 'default' as const, className: 'bg-green-600' },
-            stopped: { label: 'Detenido', variant: 'secondary' as const, className: '' },
-            pending: { label: 'Pendiente', variant: 'outline' as const, className: 'border-yellow-500 text-yellow-600' },
-            terminated: { label: 'Terminado', variant: 'destructive' as const, className: '' },
+        const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className: string }> = {
+            running: { label: 'Ejecutando', variant: 'default', className: 'bg-green-600' },
+            stopped: { label: 'Detenido', variant: 'secondary', className: '' },
+            pending: { label: 'Pendiente', variant: 'outline', className: 'border-yellow-500 text-yellow-600' },
+            terminated: { label: 'Terminado', variant: 'destructive', className: '' },
+            pendiente_aprobacion: { label: 'Pend. Aprobacion', variant: 'outline', className: 'border-amber-500 text-amber-600' },
         };
-        const config = statusConfig[server.estado];
+        const config = statusConfig[server.estado] ?? statusConfig.pending;
         return (
             <Badge variant={config.variant} className={config.className}>
                 {config.label}
@@ -813,20 +824,50 @@ export default function Servers({
                         </DialogHeader>
                         <div className="grid gap-6">
                             {/* Basic Info */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="create-nombre">Nombre del Servidor</Label>
+                                <Input
+                                    id="create-nombre"
+                                    value={createForm.nombre}
+                                    onChange={(e) =>
+                                        setCreateForm((prev) => ({
+                                            ...prev,
+                                            nombre: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="mi-servidor-web"
+                                />
+                            </div>
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="create-nombre">Nombre del Servidor</Label>
-                                    <Input
-                                        id="create-nombre"
-                                        value={createForm.nombre}
-                                        onChange={(e) =>
+                                    <Label htmlFor="create-client">Asignar a Cliente (opcional)</Label>
+                                    <Select
+                                        value={createForm.client_id}
+                                        onValueChange={(value) =>
                                             setCreateForm((prev) => ({
                                                 ...prev,
-                                                nombre: e.target.value,
+                                                client_id: value === '__none__' ? '' : value,
                                             }))
                                         }
-                                        placeholder="mi-servidor-web"
-                                    />
+                                    >
+                                        <SelectTrigger id="create-client">
+                                            <SelectValue placeholder="Sin asignar" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none__">Sin asignar</SelectItem>
+                                            {clients.map((client) => (
+                                                <SelectItem key={client.id} value={String(client.id)}>
+                                                    {client.nombre}
+                                                    <span className="text-muted-foreground ml-1 text-xs">({client.email})</span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {createForm.client_id && (
+                                        <p className="text-muted-foreground text-xs">
+                                            El cliente recibira un email para aprobar el servidor.
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="create-region">Region</Label>

@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreServerRequest;
 use App\Http\Requests\UpdateServerRequest;
+use App\Models\Client;
 use App\Models\InstanceType;
 use App\Models\OperatingSystem;
 use App\Models\Region;
 use App\Models\Server;
+use App\Notifications\ServidorPendienteAprobacionNotification;
 use App\Services\CostCalculatorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
@@ -34,8 +36,8 @@ class ServerController extends Controller
                     ->orWhereNotNull('deleted_at');
             });
         } else {
-            // Por defecto: solo activos (running, pending)
-            $query->whereIn('estado', ['running', 'pending']);
+            // Por defecto: solo activos (running, pending, pendiente_aprobacion)
+            $query->whereIn('estado', ['running', 'pending', 'pendiente_aprobacion']);
         }
 
         $servers = $query->with([
@@ -70,11 +72,14 @@ class ServerController extends Controller
 
         $regions = Region::select('id', 'codigo', 'nombre')->get();
 
+        $clients = Client::select('id', 'nombre', 'email')->orderBy('nombre')->get();
+
         return Inertia::render('servers/index', [
             'servers' => $servers,
             'operatingSystems' => $operatingSystems,
             'instanceTypes' => $instanceTypes,
             'regions' => $regions,
+            'clients' => $clients,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
@@ -107,18 +112,34 @@ class ServerController extends Controller
             $validated['conexion']
         );
 
+        $clientId = $validated['client_id'] ?? null;
+        $tokenAprobacion = null;
+        $estado = 'pending';
+
+        if ($clientId) {
+            $estado = 'pendiente_aprobacion';
+            $tokenAprobacion = Str::random(64);
+        }
+
         $server = Server::create([
             ...$validated,
             'clave_privada' => $clavePrivada,
-            'estado' => 'pending',
+            'estado' => $estado,
             'costo_diario' => $costoDiario,
             'created_by' => auth()->id(),
+            'token_aprobacion' => $tokenAprobacion,
         ]);
 
         activity('servidores')
             ->performedOn($server)
             ->causedBy(auth()->user())
             ->log('Servidor creado');
+
+        if ($clientId && $tokenAprobacion) {
+            $server->load(['region', 'operatingSystem', 'instanceType']);
+            $client = Client::find($clientId);
+            $client?->notify(new ServidorPendienteAprobacionNotification($server));
+        }
 
         $redirect = back()->with('success', 'Servidor creado correctamente.');
 

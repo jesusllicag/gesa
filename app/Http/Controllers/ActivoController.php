@@ -6,7 +6,9 @@ use App\Http\Requests\StoreActivoRequest;
 use App\Http\Requests\UpdateActivoRequest;
 use App\Models\Client;
 use App\Models\Server;
+use App\Notifications\ServidorPendienteAprobacionNotification;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
@@ -29,7 +31,7 @@ class ActivoController extends Controller
                     ->orWhereNotNull('deleted_at');
             });
         } else {
-            $query->whereIn('estado', ['running', 'pending']);
+            $query->whereIn('estado', ['running', 'pending', 'pendiente_aprobacion']);
         }
 
         $activos = $query->with([
@@ -125,12 +127,15 @@ class ActivoController extends Controller
         }
 
         $ipAddress = sprintf('10.%d.%d.%d', rand(0, 255), rand(0, 255), rand(1, 254));
+        $tokenAprobacion = Str::random(64);
 
         $server->update([
             'client_id' => $validated['client_id'],
             'hostname' => $validated['hostname'],
             'ip_address' => $ipAddress,
             'entorno' => $validated['entorno'],
+            'estado' => 'pendiente_aprobacion',
+            'token_aprobacion' => $tokenAprobacion,
         ]);
 
         activity('servidores')
@@ -143,7 +148,11 @@ class ActivoController extends Controller
             ])
             ->log('Activo creado - Servidor asignado a cliente');
 
-        return back()->with('success', 'Activo creado correctamente.');
+        $server->load(['region', 'operatingSystem', 'instanceType']);
+        $client = Client::find($validated['client_id']);
+        $client?->notify(new ServidorPendienteAprobacionNotification($server));
+
+        return back()->with('success', 'Activo creado correctamente. Se ha notificado al cliente para que apruebe el servidor.');
     }
 
     public function update(UpdateActivoRequest $request, Server $server): RedirectResponse

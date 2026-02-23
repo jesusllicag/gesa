@@ -95,7 +95,7 @@ interface Activo {
     hostname: string | null;
     ip_address: string | null;
     entorno: 'DEV' | 'STG' | 'QAS' | 'PROD' | null;
-    estado: 'running' | 'stopped' | 'pending' | 'terminated';
+    estado: 'running' | 'stopped' | 'pending' | 'terminated' | 'pendiente_aprobacion';
     costo_diario: number;
     first_activated_at: string | null;
     deleted_at: string | null;
@@ -380,13 +380,14 @@ export default function Activos({
             return <Badge variant="destructive">Terminado</Badge>;
         }
 
-        const statusConfig = {
-            running: { label: 'Ejecutando', variant: 'default' as const, className: 'bg-green-600' },
-            stopped: { label: 'Detenido', variant: 'secondary' as const, className: '' },
-            pending: { label: 'Pendiente', variant: 'outline' as const, className: 'border-yellow-500 text-yellow-600' },
-            terminated: { label: 'Terminado', variant: 'destructive' as const, className: '' },
+        const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className: string }> = {
+            running: { label: 'Ejecutando', variant: 'default', className: 'bg-green-600' },
+            stopped: { label: 'Detenido', variant: 'secondary', className: '' },
+            pending: { label: 'Pendiente', variant: 'outline', className: 'border-yellow-500 text-yellow-600' },
+            terminated: { label: 'Terminado', variant: 'destructive', className: '' },
+            pendiente_aprobacion: { label: 'Pend. Aprobacion', variant: 'outline', className: 'border-amber-500 text-amber-600' },
         };
-        const config = statusConfig[activo.estado];
+        const config = statusConfig[activo.estado] ?? statusConfig.pending;
         return (
             <Badge variant={config.variant} className={config.className}>
                 {config.label}

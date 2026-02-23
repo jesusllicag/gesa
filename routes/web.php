@@ -8,6 +8,7 @@ use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientForcePasswordChangeController;
 use App\Http\Controllers\Client\ClientPasswordController;
 use App\Http\Controllers\Client\ClientProfileController;
+use App\Http\Controllers\Client\ClientServerApprovalController;
 use App\Http\Controllers\Client\ClientSolicitudController;
 use App\Http\Controllers\Client\PagoTarjetaController;
 use App\Http\Controllers\ClientController;
@@ -105,6 +106,11 @@ Route::prefix('client')->group(function () {
             Route::get('profile', [ClientProfileController::class, 'edit'])->name('client.profile.edit');
             Route::put('profile', [ClientProfileController::class, 'update'])->name('client.profile.update');
             Route::put('password', [ClientPasswordController::class, 'update'])->name('client.password.update');
+
+            // Server approval
+            Route::get('servers/{token}/review', [ClientServerApprovalController::class, 'show'])->name('client.servers.review');
+            Route::post('servers/{token}/approve', [ClientServerApprovalController::class, 'approve'])->name('client.servers.approve');
+            Route::post('servers/{token}/reject', [ClientServerApprovalController::class, 'reject'])->name('client.servers.reject');
         });
     });
 });

@@ -35,6 +35,7 @@ class Server extends Model
         'latest_release',
         'active_ms',
         'created_by',
+        'token_aprobacion',
     ];
 
     protected function casts(): array

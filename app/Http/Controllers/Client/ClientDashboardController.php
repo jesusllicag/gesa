@@ -20,7 +20,7 @@ class ClientDashboardController extends Controller
 
         $servers = $client->servers()
             ->with(['region:id,codigo,nombre', 'operatingSystem:id,nombre,logo', 'instanceType:id,nombre,vcpus,memoria_gb'])
-            ->select('id', 'nombre', 'hostname', 'ip_address', 'entorno', 'estado', 'costo_diario', 'region_id', 'operating_system_id', 'instance_type_id', 'client_id')
+            ->select('id', 'nombre', 'hostname', 'ip_address', 'entorno', 'estado', 'costo_diario', 'region_id', 'operating_system_id', 'instance_type_id', 'client_id', 'token_aprobacion')
             ->orderBy('nombre')
             ->get();
 

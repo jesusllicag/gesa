@@ -1,5 +1,6 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
+    AlertTriangleIcon,
     CheckCircleIcon,
     ClockIcon,
     CopyIcon,
@@ -82,8 +83,9 @@ interface Server {
     hostname: string | null;
     ip_address: string | null;
     entorno: 'DEV' | 'STG' | 'QAS' | 'PROD' | null;
-    estado: 'running' | 'stopped' | 'pending' | 'terminated';
+    estado: 'running' | 'stopped' | 'pending' | 'terminated' | 'pendiente_aprobacion';
     costo_diario: number;
+    token_aprobacion: string | null;
     region: {
         id: number;
         codigo: string;
@@ -182,6 +184,7 @@ const statusConfig = {
     stopped: { label: 'Detenido', variant: 'secondary' as const, className: '' },
     pending: { label: 'Pendiente', variant: 'outline' as const, className: 'border-yellow-500 text-yellow-600' },
     terminated: { label: 'Terminado', variant: 'destructive' as const, className: '' },
+    pendiente_aprobacion: { label: 'Pendiente Aprobacion', variant: 'outline' as const, className: 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/50' },
 };
 
 const solicitudEstadoConfig = {
@@ -235,12 +238,22 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
     const securityCodeElementRef = useRef<MPField | null>(null);
     const mpFieldsMountedRef = useRef(false);
 
-    const getStatusBadge = (estado: Server['estado']) => {
-        const config = statusConfig[estado];
+    const getStatusBadge = (server: Server) => {
+        const config = statusConfig[server.estado] ?? statusConfig.pending;
         return (
-            <Badge variant={config.variant} className={config.className}>
-                {config.label}
-            </Badge>
+            <div className="flex items-center gap-2">
+                <Badge variant={config.variant} className={config.className}>
+                    {config.label}
+                </Badge>
+                {server.estado === 'pendiente_aprobacion' && server.token_aprobacion && (
+                    <Link
+                        href={`/client/servers/${server.token_aprobacion}/review`}
+                        className="text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
+                        Revisar
+                    </Link>
+                )}
+            </div>
         );
     };
 
@@ -509,6 +522,37 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                 </ClientPortalHeader>
 
                 <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                    {/* Servidores pendientes de aprobacion */}
+                    {servers.filter((s) => s.estado === 'pendiente_aprobacion').length > 0 && (
+                        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/50">
+                            <div className="flex items-start gap-3">
+                                <AlertTriangleIcon className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                                        Tienes {servers.filter((s) => s.estado === 'pendiente_aprobacion').length === 1 ? 'un servidor' : `${servers.filter((s) => s.estado === 'pendiente_aprobacion').length} servidores`} pendiente{servers.filter((s) => s.estado === 'pendiente_aprobacion').length !== 1 ? 's' : ''} de aprobacion
+                                    </h3>
+                                    <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                                        Un administrador ha preparado {servers.filter((s) => s.estado === 'pendiente_aprobacion').length === 1 ? 'un servidor' : 'servidores'} para tu cuenta. Revisa los detalles y acepta o rechaza cada uno.
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {servers
+                                            .filter((s) => s.estado === 'pendiente_aprobacion' && s.token_aprobacion)
+                                            .map((s) => (
+                                                <Link
+                                                    key={s.id}
+                                                    href={`/client/servers/${s.token_aprobacion}/review`}
+                                                    className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600"
+                                                >
+                                                    <ServerIcon className="size-3.5" />
+                                                    Revisar: {s.nombre}
+                                                </Link>
+                                            ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Servidores asignados */}
                     <div className="mb-6">
                         <h2 className="text-lg font-semibold">Mis Servidores</h2>
@@ -543,7 +587,10 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                                     </TableRow>
                                 ) : (
                                     servers.map((server) => (
-                                        <TableRow key={server.id}>
+                                        <TableRow
+                                            key={server.id}
+                                            className={server.estado === 'pendiente_aprobacion' ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}
+                                        >
                                             <TableCell>
                                                 <span className="font-medium">{server.nombre}</span>
                                             </TableCell>
@@ -591,7 +638,7 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                                             <TableCell>
                                                 <Badge variant="outline">{server.region?.codigo}</Badge>
                                             </TableCell>
-                                            <TableCell>{getStatusBadge(server.estado)}</TableCell>
+                                            <TableCell>{getStatusBadge(server)}</TableCell>
                                             <TableCell>
                                                 <span className="font-mono text-sm font-medium text-green-700 dark:text-green-400">
                                                     ${Number(server.costo_diario).toFixed(2)}

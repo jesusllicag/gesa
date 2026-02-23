@@ -59,6 +59,7 @@ it('can display servers index page', function () {
         ->has('operatingSystems')
         ->has('instanceTypes')
         ->has('regions')
+        ->has('clients')
         ->has('permissions')
     );
 });

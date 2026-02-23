@@ -24,6 +24,7 @@ class StoreServerRequest extends FormRequest
     {
         return [
             'nombre' => ['required', 'string', 'max:255'],
+            'client_id' => ['nullable', 'exists:clients,id'],
             'region_id' => ['required', 'exists:regions,id'],
             'operating_system_id' => ['required', 'exists:operating_systems,id'],
             'image_id' => ['required', 'exists:images,id'],
@@ -45,6 +46,7 @@ class StoreServerRequest extends FormRequest
         return [
             'nombre.required' => 'El nombre del servidor es obligatorio.',
             'nombre.max' => 'El nombre no puede exceder 255 caracteres.',
+            'client_id.exists' => 'El cliente seleccionado no existe.',
             'region_id.required' => 'La región es obligatoria.',
             'region_id.exists' => 'La región seleccionada no existe.',
             'operating_system_id.required' => 'El sistema operativo es obligatorio.',
