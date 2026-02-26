@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d/Projects/gesa && php artisan test --compact tests/Feature/Client/ClientServerControllerTest.php 2>&1)"
+    ]
+  }
+}

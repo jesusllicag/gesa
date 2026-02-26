@@ -1,6 +1,8 @@
 'use client';
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    BadgeCheckIcon,
+    BanknoteIcon,
     BoxIcon,
     CopyIcon,
     EditIcon,
@@ -17,6 +19,7 @@ import {
     show as showActivo,
     store as storeActivo,
     update as updateActivo,
+    validarPago,
 } from '@/actions/App/Http/Controllers/ActivoController';
 import { start as startServer } from '@/actions/App/Http/Controllers/ServerController';
 import {
@@ -89,6 +92,11 @@ interface AvailableServer {
     estado: string;
 }
 
+interface PagoMensualPendiente {
+    id: number;
+    monto: string;
+}
+
 interface Activo {
     id: string;
     nombre: string;
@@ -119,6 +127,7 @@ interface Activo {
         vcpus: number;
         memoria_gb: number;
     };
+    pagos_mensuales: PagoMensualPendiente[];
 }
 
 interface PaginatedActivos {
@@ -563,7 +572,17 @@ export default function Activos({
                                                 ${Number(activo.costo_diario).toFixed(2)}
                                             </span>
                                         </TableCell>
-                                        <TableCell>{getStatusBadge(activo)}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                {getStatusBadge(activo)}
+                                                {activo.pagos_mensuales.length > 0 && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                                                        <BanknoteIcon className="size-3" />
+                                                        Pago pendiente
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             {!activo.deleted_at && activo.estado !== 'terminated' && (
                                                 <DropdownMenu>
@@ -574,6 +593,23 @@ export default function Activos({
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                        {activo.pagos_mensuales.length > 0 && permissions.canUpdate && (
+                                                            <>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        router.post(
+                                                                            validarPago({ server: activo.id, pago: activo.pagos_mensuales[0].id }).url,
+                                                                            {},
+                                                                            { preserveScroll: true },
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <BadgeCheckIcon className="mr-2 size-4 text-green-600" />
+                                                                    Validar pago (${Number(activo.pagos_mensuales[0].monto).toFixed(2)})
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                            </>
+                                                        )}
                                                         {canStartActivo(activo) && (
                                                             <DropdownMenuItem onClick={() => handleStart(activo)}>
                                                                 <PlayIcon className="mr-2 size-4" />

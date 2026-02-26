@@ -1,19 +1,23 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
     AlertTriangleIcon,
+    CalendarPlusIcon,
     CheckCircleIcon,
     ClockIcon,
     CopyIcon,
     DownloadIcon,
     GlobeIcon,
     LockIcon,
+    PlayIcon,
     PlusIcon,
     ServerIcon,
+    SquareIcon,
     XCircleIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { download as downloadServerPdf } from '@/actions/App/Http/Controllers/Client/ClientServerPdfController';
+import { pagarMensualidad, pagarTransferencia } from '@/actions/App/Http/Controllers/Client/ClientServerController';
 import { ClientPortalHeader } from '@/components/client-portal-header';
 import { CostPreview } from '@/components/cost-preview';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +92,8 @@ interface Server {
     estado: 'running' | 'stopped' | 'pending' | 'terminated' | 'pendiente_aprobacion';
     costo_diario: number;
     token_aprobacion: string | null;
+    deuda_pendiente: number;
+    has_pago_pendiente: boolean;
     region: {
         id: number;
         codigo: string;
@@ -165,6 +171,13 @@ interface Solicitud {
     };
 }
 
+interface BankAccount {
+    nombre: string;
+    titular: string;
+    cbu: string;
+    alias: string;
+}
+
 interface DashboardProps {
     servers: Server[];
     solicitudes: Solicitud[];
@@ -172,6 +185,7 @@ interface DashboardProps {
     instanceTypes: InstanceType[];
     regions: Region[];
     mercadopago_public_key: string | null;
+    bank_account: BankAccount;
 }
 
 const entornoColors: Record<string, string> = {
@@ -224,7 +238,7 @@ const initialMpForm = {
     paymentMethodId: '',
 };
 
-export default function ClientDashboard({ servers, solicitudes, operatingSystems, instanceTypes, regions, mercadopago_public_key }: DashboardProps) {
+export default function ClientDashboard({ servers, solicitudes, operatingSystems, instanceTypes, regions, mercadopago_public_key, bank_account }: DashboardProps) {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [createForm, setCreateForm] = useState({ ...initialCreateForm });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -239,6 +253,30 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
     const cardNumberElementRef = useRef<MPField | null>(null);
     const securityCodeElementRef = useRef<MPField | null>(null);
     const mpFieldsMountedRef = useRef(false);
+
+    // Debt payment dialog state
+    const [deudaServer, setDeudaServer] = useState<Server | null>(null);
+    const [deudaStep, setDeudaStep] = useState<1 | 2>(1);
+    const [deudaMpForm, setDeudaMpForm] = useState({ ...initialMpForm });
+    const [deudaIdentificationTypes, setDeudaIdentificationTypes] = useState<Array<{ id: string; name: string }>>([]);
+    const [deudaIssuers, setDeudaIssuers] = useState<Array<{ id: string; name: string }>>([]);
+    const [deudaInstallmentOptions, setDeudaInstallmentOptions] = useState<Array<{ installments: number; recommended_message: string }>>([]);
+    const [deudaPaymentError, setDeudaPaymentError] = useState<string | null>(null);
+    const [deudaProcessing, setDeudaProcessing] = useState(false);
+    const deudaCardNumberRef = useRef<MPField | null>(null);
+    const deudaSecurityCodeRef = useRef<MPField | null>(null);
+    const deudaMpFieldsMountedRef = useRef(false);
+
+    // Bank transfer dialog state
+    const [transferenciaServer, setTransferenciaServer] = useState<Server | null>(null);
+    const [transferenciaProcessing, setTransferenciaProcessing] = useState(false);
+    const [transferenciaMode, setTransferenciaMode] = useState<'deuda' | 'mensualidad'>('deuda');
+
+    // Advance month payment dialog state
+    const [mensualidadServer, setMensualidadServer] = useState<Server | null>(null);
+
+    // Deuda dialog mode (debt or advance month)
+    const [deudaMode, setDeudaMode] = useState<'deuda' | 'mensualidad'>('deuda');
 
     const getStatusBadge = (server: Server) => {
         const config = statusConfig[server.estado] ?? statusConfig.pending;
@@ -415,6 +453,199 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
 
         initMercadoPago();
     }, [step, mercadopago_public_key, costPreview.total]);
+
+    useEffect(() => {
+        if (deudaStep !== 2 || !deudaServer || !mercadopago_public_key || deudaMpFieldsMountedRef.current) {
+            return;
+        }
+
+        const initDeudaMercadoPago = async () => {
+            if (!window.MercadoPago) {
+                const script = document.createElement('script');
+                script.src = 'https://sdk.mercadopago.com/js/v2';
+                script.async = true;
+                document.body.appendChild(script);
+                await new Promise<void>((resolve) => {
+                    script.onload = () => resolve();
+                });
+            }
+
+            const mp = mpInstanceRef.current ?? new window.MercadoPago(mercadopago_public_key);
+            mpInstanceRef.current = mp;
+            deudaMpFieldsMountedRef.current = true;
+
+            const cardNumberEl = mp.fields
+                .create('cardNumber', { placeholder: 'Numero de tarjeta' })
+                .mount('debt-mp-card-number');
+            deudaCardNumberRef.current = cardNumberEl;
+
+            mp.fields.create('expirationDate', { placeholder: 'MM/AA' }).mount('debt-mp-expiration-date');
+
+            const securityCodeEl = mp.fields
+                .create('securityCode', { placeholder: 'CVV' })
+                .mount('debt-mp-security-code');
+            deudaSecurityCodeRef.current = securityCodeEl;
+
+            try {
+                const types = await mp.getIdentificationTypes();
+                setDeudaIdentificationTypes(types);
+                if (types.length > 0) {
+                    setDeudaMpForm((prev) => ({ ...prev, identificationType: types[0].id }));
+                }
+            } catch (e) {
+                console.error('[MP Deuda] Error al obtener tipos de identificacion:', e);
+            }
+
+            const deudaAmount = deudaMode === 'mensualidad'
+                ? Number(deudaServer.costo_diario) * 30
+                : deudaServer.deuda_pendiente;
+            let currentBin: string | undefined;
+
+            cardNumberEl.on('binChange', async (data) => {
+                const { bin } = data;
+                try {
+                    if (!bin) {
+                        setDeudaMpForm((prev) => ({ ...prev, paymentMethodId: '', issuerId: '', installments: '' }));
+                        setDeudaIssuers([]);
+                        setDeudaInstallmentOptions([]);
+                        return;
+                    }
+                    if (bin !== currentBin) {
+                        const { results } = await mp.getPaymentMethods({ bin });
+                        const paymentMethod = results[0];
+                        setDeudaMpForm((prev) => ({ ...prev, paymentMethodId: paymentMethod.id }));
+
+                        if (paymentMethod.settings?.[0]) {
+                            cardNumberEl.update({ settings: paymentMethod.settings[0].card_number });
+                            securityCodeEl.update({ settings: paymentMethod.settings[0].security_code });
+                        }
+
+                        let issuerOptions: Array<{ id: string; name: string }> = [];
+                        if (paymentMethod.additional_info_needed?.includes('issuer_id')) {
+                            issuerOptions = await mp.getIssuers({ paymentMethodId: paymentMethod.id, bin });
+                        } else if (paymentMethod.issuer) {
+                            issuerOptions = [paymentMethod.issuer as { id: string; name: string }];
+                        }
+                        setDeudaIssuers(issuerOptions);
+                        if (issuerOptions.length > 0) {
+                            setDeudaMpForm((prev) => ({ ...prev, issuerId: String(issuerOptions[0].id) }));
+                        }
+
+                        const installmentsData = await mp.getInstallments({
+                            amount: deudaAmount,
+                            bin,
+                            paymentTypeId: 'credit_card',
+                        });
+                        const payerCosts = installmentsData[0]?.payer_costs ?? [];
+                        setDeudaInstallmentOptions(payerCosts);
+                        if (payerCosts.length > 0) {
+                            setDeudaMpForm((prev) => ({ ...prev, installments: String(payerCosts[0].installments) }));
+                        }
+                    }
+                    currentBin = bin;
+                } catch (e) {
+                    console.error('[MP Deuda] Error en binChange:', e);
+                }
+            });
+        };
+
+        initDeudaMercadoPago();
+    }, [deudaStep, deudaServer, deudaMode, mercadopago_public_key]);
+
+    const handleDeudaDialogClose = () => {
+        setDeudaServer(null);
+        setDeudaStep(1);
+        setDeudaMpForm({ ...initialMpForm });
+        setDeudaIdentificationTypes([]);
+        setDeudaIssuers([]);
+        setDeudaInstallmentOptions([]);
+        setDeudaPaymentError(null);
+        setDeudaMode('deuda');
+        deudaMpFieldsMountedRef.current = false;
+    };
+
+    const handleDeudaPayment = async () => {
+        if (!deudaServer) {
+            return;
+        }
+        setDeudaPaymentError(null);
+        setDeudaProcessing(true);
+
+        try {
+            const mp = mpInstanceRef.current;
+            if (!mp) {
+                throw new Error('MercadoPago no inicializado');
+            }
+
+            const token = await mp.fields.createCardToken({
+                cardholderName: deudaMpForm.cardholderName,
+                identificationType: deudaMpForm.identificationType,
+                identificationNumber: deudaMpForm.identificationNumber,
+            });
+
+            const deudaUrl = deudaMode === 'mensualidad'
+                ? pagarMensualidad(deudaServer.id).url
+                : `/client/servers/${deudaServer.id}/pagar-deuda`;
+
+            router.post(
+                deudaUrl,
+                {
+                    medio_pago: 'tarjeta_credito',
+                    token: token.id,
+                    installments: Number(deudaMpForm.installments),
+                    payment_method_id: deudaMpForm.paymentMethodId,
+                    issuer_id: deudaMpForm.issuerId ? Number(deudaMpForm.issuerId) : null,
+                    identification_type: deudaMpForm.identificationType || null,
+                    identification_number: deudaMpForm.identificationNumber || null,
+                    cardholder_name: deudaMpForm.cardholderName || null,
+                },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => handleDeudaDialogClose(),
+                    onError: (errors) => {
+                        const paymentErr = (errors as Record<string, string>).payment;
+                        setDeudaPaymentError(paymentErr ?? 'Error al procesar el pago.');
+                    },
+                    onFinish: () => setDeudaProcessing(false),
+                }
+            );
+        } catch (e) {
+            setDeudaPaymentError('Error al tokenizar la tarjeta. Verifica los datos ingresados.');
+            setDeudaProcessing(false);
+        }
+    };
+
+    const handleServerStart = (serverId: string) => {
+        router.post(`/client/servers/${serverId}/start`, {}, { preserveScroll: true });
+    };
+
+    const handleServerStop = (serverId: string) => {
+        router.post(`/client/servers/${serverId}/stop`, {}, { preserveScroll: true });
+    };
+
+    const handlePagarTransferencia = () => {
+        if (!transferenciaServer) {
+            return;
+        }
+        setTransferenciaProcessing(true);
+
+        const url = transferenciaMode === 'mensualidad'
+            ? pagarMensualidad(transferenciaServer.id).url
+            : pagarTransferencia(transferenciaServer.id).url;
+
+        const body = transferenciaMode === 'mensualidad'
+            ? { medio_pago: 'transferencia_bancaria' }
+            : {};
+
+        router.post(url, body, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setTransferenciaServer(null);
+                setTransferenciaMode('deuda');
+            },
+            onFinish: () => setTransferenciaProcessing(false),
+        });
+    };
 
     const handlePayment = async () => {
         setPaymentError(null);
@@ -646,15 +877,88 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                                                 <span className="font-mono text-sm font-medium text-green-700 dark:text-green-400">
                                                     ${Number(server.costo_diario).toFixed(2)}
                                                 </span>
+                                                {server.deuda_pendiente > 0 && (
+                                                    <span className="mt-0.5 block text-xs text-red-600 dark:text-red-400">
+                                                        Deuda: ${Number(server.deuda_pendiente).toFixed(2)}
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell>
-                                                {server.estado === 'running' && (
-                                                    <a href={downloadServerPdf(server.id).url} target="_blank" rel="noreferrer">
-                                                        <Button variant="ghost" size="icon" className="size-7" title="Descargar PDF">
-                                                            <DownloadIcon className="size-4" />
+                                                <div className="flex items-center gap-1">
+                                                    {server.estado === 'stopped' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-7 text-green-600 hover:text-green-700 dark:text-green-500"
+                                                            title="Iniciar servidor"
+                                                            onClick={() => handleServerStart(server.id)}
+                                                        >
+                                                            <PlayIcon className="size-4" />
                                                         </Button>
-                                                    </a>
-                                                )}
+                                                    )}
+                                                    {server.estado === 'running' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-7 text-red-600 hover:text-red-700 dark:text-red-500"
+                                                            title="Detener servidor"
+                                                            onClick={() => handleServerStop(server.id)}
+                                                        >
+                                                            <SquareIcon className="size-4" />
+                                                        </Button>
+                                                    )}
+                                                    {server.estado === 'running' && (
+                                                        <a href={downloadServerPdf(server.id).url} target="_blank" rel="noreferrer">
+                                                            <Button variant="ghost" size="icon" className="size-7" title="Descargar PDF">
+                                                                <DownloadIcon className="size-4" />
+                                                            </Button>
+                                                        </a>
+                                                    )}
+                                                    {server.has_pago_pendiente ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300">
+                                                            <ClockIcon className="size-3" />
+                                                            Pago en proceso
+                                                        </span>
+                                                    ) : (
+                                                        <>
+                                                            {server.deuda_pendiente > 0 && (
+                                                                <div className="flex items-center gap-1">
+                                                                    {mercadopago_public_key && (
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            className="h-7 px-2 text-xs text-red-600 hover:text-red-700 dark:text-red-400"
+                                                                            title="Pagar deuda con tarjeta"
+                                                                            onClick={() => setDeudaServer(server)}
+                                                                        >
+                                                                            Tarjeta
+                                                                        </Button>
+                                                                    )}
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                                                                        title="Pagar deuda por transferencia"
+                                                                        onClick={() => setTransferenciaServer(server)}
+                                                                    >
+                                                                        Transferencia
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            {['running', 'stopped', 'pending'].includes(server.estado) && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="size-7 text-violet-600 hover:text-violet-700 dark:text-violet-400"
+                                                                    title="Pagar mensualidad adelantada"
+                                                                    onClick={() => setMensualidadServer(server)}
+                                                                >
+                                                                    <CalendarPlusIcon className="size-4" />
+                                                                </Button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -1215,6 +1519,301 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
                             </DialogFooter>
                         </>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Pagar Deuda Dialog */}
+            <Dialog open={deudaServer !== null} onOpenChange={(open) => { if (!open) handleDeudaDialogClose(); }}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+                    {deudaStep === 1 ? (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    {deudaMode === 'mensualidad' ? 'Pagar Mensualidad' : 'Pagar Deuda Pendiente'}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {deudaMode === 'mensualidad'
+                                        ? <>Paga un mes adelantado para <strong>{deudaServer?.nombre}</strong>.</>
+                                        : <>Tienes tiempo de uso activo sin facturar en <strong>{deudaServer?.nombre}</strong>.</>}
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="rounded-lg border bg-muted/40 p-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Monto a pagar</span>
+                                    <span className="text-xl font-bold text-green-700 dark:text-green-400">
+                                        ${deudaMode === 'mensualidad'
+                                            ? (Number(deudaServer?.costo_diario ?? 0) * 30).toFixed(2)
+                                            : Number(deudaServer?.deuda_pendiente ?? 0).toFixed(2)}
+                                    </span>
+                                </div>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    {deudaMode === 'mensualidad'
+                                        ? 'Corresponde a 30 dias de uso del servidor.'
+                                        : 'Calculado en base al tiempo activo de tu servidor desde el ultimo ciclo facturado. El importe corresponde a un maximo de 30 dias de uso.'}
+                                </p>
+                            </div>
+
+                            <DialogFooter className="mt-4">
+                                <DialogClose asChild>
+                                    <Button variant="outline">Cancelar</Button>
+                                </DialogClose>
+                                <Button onClick={() => setDeudaStep(2)}>
+                                    Pagar con Tarjeta
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    ) : (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    {deudaMode === 'mensualidad' ? 'Mensualidad con Tarjeta' : 'Pago de Deuda con Tarjeta'}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Ingresa los datos de tu tarjeta para pagar ${deudaMode === 'mensualidad'
+                                        ? (Number(deudaServer?.costo_diario ?? 0) * 30).toFixed(2)
+                                        : Number(deudaServer?.deuda_pendiente ?? 0).toFixed(2)}.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            {deudaPaymentError && (
+                                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400">
+                                    {deudaPaymentError}
+                                </div>
+                            )}
+
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label>Numero de Tarjeta</Label>
+                                    <div
+                                        id="debt-mp-card-number"
+                                        className="rounded-md border border-input bg-background"
+                                        style={{ height: '40px', padding: '0 12px' }}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Fecha de Vencimiento</Label>
+                                        <div
+                                            id="debt-mp-expiration-date"
+                                            className="rounded-md border border-input bg-background"
+                                            style={{ height: '40px', padding: '0 12px' }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Codigo de Seguridad</Label>
+                                        <div
+                                            id="debt-mp-security-code"
+                                            className="rounded-md border border-input bg-background"
+                                            style={{ height: '40px', padding: '0 12px' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="debt-mp-cardholder">Nombre del Titular</Label>
+                                    <Input
+                                        id="debt-mp-cardholder"
+                                        value={deudaMpForm.cardholderName}
+                                        onChange={(e) => setDeudaMpForm((prev) => ({ ...prev, cardholderName: e.target.value }))}
+                                        placeholder="Como aparece en la tarjeta"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="debt-mp-identification-type">Tipo de Documento</Label>
+                                        <Select
+                                            value={deudaMpForm.identificationType}
+                                            onValueChange={(value) => setDeudaMpForm((prev) => ({ ...prev, identificationType: value }))}
+                                        >
+                                            <SelectTrigger id="debt-mp-identification-type">
+                                                <SelectValue placeholder="Tipo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {deudaIdentificationTypes.map((type) => (
+                                                    <SelectItem key={type.id} value={type.id}>
+                                                        {type.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="debt-mp-identification-number">Numero de Documento</Label>
+                                        <Input
+                                            id="debt-mp-identification-number"
+                                            value={deudaMpForm.identificationNumber}
+                                            onChange={(e) => setDeudaMpForm((prev) => ({ ...prev, identificationNumber: e.target.value }))}
+                                            placeholder="12345678"
+                                        />
+                                    </div>
+                                </div>
+
+                                {deudaMpForm.paymentMethodId && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Tarjeta detectada: <span className="font-medium capitalize">{deudaMpForm.paymentMethodId}</span>
+                                        {deudaMpForm.issuerId && deudaIssuers.length > 0 && ` · ${deudaIssuers.find((i) => String(i.id) === deudaMpForm.issuerId)?.name ?? ''}`}
+                                    </p>
+                                )}
+
+                                {deudaIssuers.length > 1 && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="debt-mp-issuer">Banco Emisor</Label>
+                                        <Select
+                                            value={deudaMpForm.issuerId}
+                                            onValueChange={(value) => setDeudaMpForm((prev) => ({ ...prev, issuerId: value }))}
+                                        >
+                                            <SelectTrigger id="debt-mp-issuer">
+                                                <SelectValue placeholder="Seleccionar banco" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {deudaIssuers.map((issuer) => (
+                                                    <SelectItem key={issuer.id} value={String(issuer.id)}>
+                                                        {issuer.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                {deudaInstallmentOptions.length > 0 && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="debt-mp-installments">Cuotas</Label>
+                                        <Select
+                                            value={deudaMpForm.installments}
+                                            onValueChange={(value) => setDeudaMpForm((prev) => ({ ...prev, installments: value }))}
+                                        >
+                                            <SelectTrigger id="debt-mp-installments">
+                                                <SelectValue placeholder="Seleccionar cuotas" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {deudaInstallmentOptions.map((opt) => (
+                                                    <SelectItem key={opt.installments} value={String(opt.installments)}>
+                                                        {opt.recommended_message}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <DialogFooter className="mt-4">
+                                <Button variant="outline" onClick={() => setDeudaStep(1)}>
+                                    Volver
+                                </Button>
+                                <Button
+                                    onClick={handleDeudaPayment}
+                                    disabled={deudaProcessing || !deudaMpForm.cardholderName}
+                                >
+                                    {deudaProcessing ? 'Procesando...' : `Pagar $${deudaMode === 'mensualidad'
+                                        ? (Number(deudaServer?.costo_diario ?? 0) * 30).toFixed(2)
+                                        : Number(deudaServer?.deuda_pendiente ?? 0).toFixed(2)}`}
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Bank Transfer Payment Dialog */}
+            <Dialog open={!!transferenciaServer} onOpenChange={(open) => { if (!open) { setTransferenciaServer(null); setTransferenciaMode('deuda'); } }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {transferenciaMode === 'mensualidad' ? 'Mensualidad por Transferencia' : 'Pagar por Transferencia Bancaria'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Realiza la transferencia al siguiente numero de cuenta y confirma el pago. El equipo validara la acreditacion.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                        <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Banco</span>
+                                <span className="font-medium">{bank_account.nombre}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Titular</span>
+                                <span className="font-medium">{bank_account.titular}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">CBU</span>
+                                <span className="font-mono font-medium">{bank_account.cbu}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Alias</span>
+                                <span className="font-mono font-medium">{bank_account.alias}</span>
+                            </div>
+                            <div className="border-t pt-2 flex justify-between">
+                                <span className="text-muted-foreground">Monto a transferir</span>
+                                <span className="font-bold text-green-700 dark:text-green-400">
+                                    ${transferenciaMode === 'mensualidad'
+                                        ? (Number(transferenciaServer?.costo_diario ?? 0) * 30).toFixed(2)
+                                        : Number(transferenciaServer?.deuda_pendiente ?? 0).toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+                        <p className="text-muted-foreground text-xs">
+                            Al confirmar, registraremos tu solicitud. Una vez acreditada la transferencia, el equipo validara el pago y se actualizara el estado de tu cuenta.
+                        </p>
+                    </div>
+                    <DialogFooter className="mt-2">
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogClose>
+                        <Button onClick={handlePagarTransferencia} disabled={transferenciaProcessing}>
+                            {transferenciaProcessing ? 'Registrando...' : 'Ya realice la transferencia'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Mensualidad — elegir metodo de pago */}
+            <Dialog open={mensualidadServer !== null} onOpenChange={(open) => { if (!open) { setMensualidadServer(null); } }}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Pagar Mensualidad</DialogTitle>
+                        <DialogDescription>
+                            Paga un mes adelantado para <strong>{mensualidadServer?.nombre}</strong>.
+                            El costo es de <strong>${(Number(mensualidadServer?.costo_diario ?? 0) * 30).toFixed(2)}</strong> (30 dias).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2">
+                        {mercadopago_public_key && (
+                            <Button
+                                className="w-full"
+                                onClick={() => {
+                                    const s = mensualidadServer!;
+                                    setMensualidadServer(null);
+                                    setDeudaMode('mensualidad');
+                                    setDeudaServer(s);
+                                }}
+                            >
+                                Pagar con Tarjeta de Credito
+                            </Button>
+                        )}
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                                const s = mensualidadServer!;
+                                setMensualidadServer(null);
+                                setTransferenciaMode('mensualidad');
+                                setTransferenciaServer(s);
+                            }}
+                        >
+                            Pagar por Transferencia Bancaria
+                        </Button>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="ghost">Cancelar</Button>
+                        </DialogClose>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>

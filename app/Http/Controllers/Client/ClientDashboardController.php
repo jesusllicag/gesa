@@ -11,6 +11,12 @@ use Inertia\Response;
 
 class ClientDashboardController extends Controller
 {
+    /** Minimum billable active time in milliseconds (1 day). */
+    private const MIN_BILLABLE_MS = 86_400_000;
+
+    /** Maximum payable debt in days. */
+    private const MAX_PAYABLE_DAYS = 30;
+
     /**
      * Show the client dashboard with assigned servers.
      */
@@ -20,9 +26,28 @@ class ClientDashboardController extends Controller
 
         $servers = $client->servers()
             ->with(['region:id,codigo,nombre', 'operatingSystem:id,nombre,logo', 'instanceType:id,nombre,vcpus,memoria_gb'])
-            ->select('id', 'nombre', 'hostname', 'ip_address', 'entorno', 'estado', 'costo_diario', 'region_id', 'operating_system_id', 'instance_type_id', 'client_id', 'token_aprobacion')
+            ->withCount(['pagosMensuales as pagos_pendientes_count' => fn ($q) => $q->where('estado', 'pendiente')])
+            ->select('id', 'nombre', 'hostname', 'ip_address', 'entorno', 'estado', 'costo_diario', 'region_id', 'operating_system_id', 'instance_type_id', 'client_id', 'token_aprobacion', 'active_ms', 'billed_active_ms', 'latest_release', 'first_activated_at')
             ->orderBy('nombre')
-            ->get();
+            ->get()
+            ->map(function ($server) {
+                $currentActiveMs = $server->active_ms;
+                if ($server->latest_release) {
+                    $currentActiveMs += (int) now()->diffInMilliseconds($server->latest_release);
+                }
+
+                $pendingMs = max(0, $currentActiveMs - $server->billed_active_ms);
+                $pendingDays = $pendingMs / 86_400_000;
+                $daysToCharge = min($pendingDays, self::MAX_PAYABLE_DAYS);
+
+                $server->deuda_pendiente = $pendingMs >= self::MIN_BILLABLE_MS
+                    ? round($daysToCharge * (float) $server->costo_diario, 2)
+                    : 0.0;
+
+                $server->has_pago_pendiente = $server->pagos_pendientes_count > 0;
+
+                return $server;
+            });
 
         $solicitudes = $client->solicitudes()
             ->with([
@@ -51,6 +76,7 @@ class ClientDashboardController extends Controller
             'instanceTypes' => $instanceTypes,
             'regions' => $regions,
             'mercadopago_public_key' => config('mercadopago.public_key'),
+            'bank_account' => config('bank'),
         ]);
     }
 }

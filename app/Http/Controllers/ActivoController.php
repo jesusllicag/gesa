@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreActivoRequest;
 use App\Http\Requests\UpdateActivoRequest;
 use App\Models\Client;
+use App\Models\PagoMensual;
 use App\Models\Server;
 use App\Notifications\ServidorPendienteAprobacionNotification;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,7 @@ class ActivoController extends Controller
             'region:id,codigo,nombre',
             'operatingSystem:id,nombre,logo',
             'instanceType:id,nombre,vcpus,memoria_gb',
+            'pagosMensuales' => fn ($q) => $q->where('estado', 'pendiente')->latest()->limit(1),
         ])
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -109,11 +111,25 @@ class ActivoController extends Controller
 
         $pagosPendientes = $server->pagosMensuales->whereIn('estado', ['pendiente', 'vencido'])->count();
 
+        $pagoMesActual = $server->pagosMensuales
+            ->where('anio', now()->year)
+            ->where('mes', now()->month)
+            ->sortByDesc('id')
+            ->first();
+
+        $currentActiveMs = $server->active_ms;
+        if ($server->latest_release && $server->estado === 'running') {
+            $currentActiveMs += (int) abs(now()->diffInMilliseconds($server->latest_release));
+        }
+        $currentActiveMs = max(0, $currentActiveMs);
+
         return Inertia::render('activos/show', [
             'server' => $server,
             'activities' => $activities,
             'costoMensualEstimado' => $costoMensualEstimado,
             'pagosPendientes' => $pagosPendientes,
+            'currentActiveMs' => $currentActiveMs,
+            'pagoMesActual' => $pagoMesActual,
         ]);
     }
 
@@ -230,5 +246,29 @@ class ActivoController extends Controller
         $server->delete();
 
         return back()->with('success', 'Servidor dado de baja correctamente.');
+    }
+
+    public function validarPago(Server $server, PagoMensual $pago): RedirectResponse
+    {
+        abort_unless($pago->server_id === $server->id, 404);
+        abort_unless($pago->estado === 'pendiente', 422);
+
+        $diasCreditados = (float) $pago->monto / (float) $server->costo_diario;
+        $msToCredit = (int) round($diasCreditados * 86_400_000);
+
+        $pago->update([
+            'estado' => 'pagado',
+            'fecha_pago' => now(),
+        ]);
+
+        $server->increment('billed_active_ms', $msToCredit);
+
+        activity('servidores')
+            ->performedOn($server)
+            ->causedBy(auth()->user())
+            ->withProperties(['pago_id' => $pago->id, 'monto' => $pago->monto, 'dias_acreditados' => round($diasCreditados, 2)])
+            ->log('Pago por transferencia validado por administrador');
+
+        return back()->with('success', 'Pago validado correctamente. Se acreditaron '.round($diasCreditados, 1).' dias.');
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\Client\ClientForcePasswordChangeController;
 use App\Http\Controllers\Client\ClientPasswordController;
 use App\Http\Controllers\Client\ClientProfileController;
 use App\Http\Controllers\Client\ClientServerApprovalController;
+use App\Http\Controllers\Client\ClientServerController;
 use App\Http\Controllers\Client\ClientServerPdfController;
 use App\Http\Controllers\Client\ClientSolicitudController;
 use App\Http\Controllers\Client\PagoTarjetaController;
@@ -69,6 +70,7 @@ Route::prefix('admin')->group(function () {
         Route::put('activos/{server}', [ActivoController::class, 'update'])->name('activos.update');
         Route::post('activos/{server}/dar-de-baja', [ActivoController::class, 'darDeBaja'])->name('activos.dar-de-baja');
         Route::get('activos/{server}/pdf', [ActivoController::class, 'pdfActivo'])->name('activos.pdf');
+        Route::post('activos/{server}/pagos/{pago}/validar', [ActivoController::class, 'validarPago'])->name('activos.pagos.validar');
 
         // Servers
         Route::get('servers', [ServerController::class, 'index'])->name('servers.index');
@@ -111,6 +113,13 @@ Route::prefix('client')->group(function () {
 
             // Server PDF download
             Route::get('servers/{server}/pdf', [ClientServerPdfController::class, 'download'])->name('client.servers.pdf');
+
+            // Server start/stop/debt payment
+            Route::post('servers/{server}/start', [ClientServerController::class, 'start'])->name('client.servers.start');
+            Route::post('servers/{server}/stop', [ClientServerController::class, 'stop'])->name('client.servers.stop');
+            Route::post('servers/{server}/pagar-deuda', [ClientServerController::class, 'pagarDeuda'])->name('client.servers.pagar-deuda');
+            Route::post('servers/{server}/pagar-transferencia', [ClientServerController::class, 'pagarTransferencia'])->name('client.servers.pagar-transferencia');
+            Route::post('servers/{server}/pagar-mensualidad', [ClientServerController::class, 'pagarMensualidad'])->name('client.servers.pagar-mensualidad');
 
             // Server approval
             Route::get('servers/{token}/review', [ClientServerApprovalController::class, 'show'])->name('client.servers.review');

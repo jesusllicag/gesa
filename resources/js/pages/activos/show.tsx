@@ -1,7 +1,9 @@
 'use client';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
+    AlertTriangleIcon,
     ArrowLeftIcon,
+    BadgeCheckIcon,
     CalendarIcon,
     CopyIcon,
     ChevronDownIcon,
@@ -13,9 +15,9 @@ import {
     ServerIcon,
     UserIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { pdfActivo, show as showActivo } from '@/actions/App/Http/Controllers/ActivoController';
+import { pdfActivo, show as showActivo, validarPago } from '@/actions/App/Http/Controllers/ActivoController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -181,34 +183,33 @@ export default function ActivoShow({
     activities,
     costoMensualEstimado,
     pagosPendientes,
+    currentActiveMs,
+    pagoMesActual,
 }: {
     server: ServerDetail;
     activities: PaginatedActivities;
     costoMensualEstimado: number;
     pagosPendientes: number;
+    currentActiveMs: number;
+    pagoMesActual: PagoMensual | null;
 }) {
     const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set());
 
-    const [uptimeMs, setUptimeMs] = useState(() =>
-        server.estado === 'running' && server.latest_release
-            ? server.active_ms + (Date.now() - Date.parse(server.latest_release))
-            : server.active_ms,
-    );
+    const pageLoadTime = useRef(Date.now());
+    const [uptimeMs, setUptimeMs] = useState(currentActiveMs);
 
     useEffect(() => {
-        if (server.estado !== 'running' || !server.latest_release) {
+        if (server.estado !== 'running') {
             return;
         }
 
-        const latestRelease = server.latest_release;
-        const baseMs = server.active_ms;
-
+        const loadTime = pageLoadTime.current;
         const interval = setInterval(() => {
-            setUptimeMs(baseMs + (Date.now() - Date.parse(latestRelease)));
+            setUptimeMs(currentActiveMs + (Date.now() - loadTime));
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [server.estado, server.latest_release, server.active_ms]);
+    }, [server.estado, currentActiveMs]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Activos', href: indexActivos().url },
@@ -281,6 +282,25 @@ export default function ActivoShow({
                     </a>
                 </div>
 
+                {/* Pending payment banner */}
+                {server.pagos_mensuales.some((p) => p.estado === 'pendiente') && (
+                    <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/50">
+                        <AlertTriangleIcon className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <div>
+                            <p className="font-semibold text-amber-800 dark:text-amber-200">
+                                Pago pendiente de aprobacion
+                            </p>
+                            <p className="mt-0.5 text-sm text-amber-700 dark:text-amber-300">
+                                Este servidor tiene{' '}
+                                {server.pagos_mensuales.filter((p) => p.estado === 'pendiente').length === 1
+                                    ? 'un pago por transferencia bancaria'
+                                    : `${server.pagos_mensuales.filter((p) => p.estado === 'pendiente').length} pagos`}{' '}
+                                pendiente{server.pagos_mensuales.filter((p) => p.estado === 'pendiente').length !== 1 ? 's' : ''} de confirmacion. Valida los pagos en la seccion de Facturacion.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Summary cards */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Card>
@@ -305,7 +325,26 @@ export default function ActivoShow({
                             <div className="text-2xl font-bold text-green-700 dark:text-green-400">
                                 ${costoMensualEstimado.toFixed(2)}
                             </div>
-                            <p className="text-muted-foreground text-xs">este mes</p>
+                            <p className="text-muted-foreground text-xs">
+                                {server.first_activated_at
+                                    ? `desde ${formatDate(server.first_activated_at)}`
+                                    : 'sin fecha de inicio'}
+                            </p>
+                            <div className="mt-2">
+                                {pagoMesActual?.estado === 'pagado' ? (
+                                    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        Mes actual pagado
+                                    </span>
+                                ) : pagoMesActual?.estado === 'pendiente' ? (
+                                    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                        Pago pendiente de confirmacion
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                        Sin pago este mes
+                                    </span>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -507,16 +546,18 @@ export default function ActivoShow({
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Periodo</TableHead>
+                                                    <TableHead>Mes facturado</TableHead>
                                                     <TableHead>Monto</TableHead>
                                                     <TableHead>Estado</TableHead>
-                                                    <TableHead>Fecha Pago</TableHead>
+                                                    <TableHead>Fecha de pago</TableHead>
+                                                    <TableHead>Observaciones</TableHead>
+                                                    <TableHead className="w-10"></TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {server.pagos_mensuales.map((pago) => (
                                                     <TableRow key={pago.id}>
-                                                        <TableCell>
+                                                        <TableCell className="font-medium">
                                                             {mesesNombres[pago.mes]} {pago.anio}
                                                         </TableCell>
                                                         <TableCell>
@@ -526,7 +567,29 @@ export default function ActivoShow({
                                                         </TableCell>
                                                         <TableCell>{getEstadoPagoBadge(pago.estado)}</TableCell>
                                                         <TableCell>
-                                                            {pago.fecha_pago ? formatDate(pago.fecha_pago) : '-'}
+                                                            {pago.fecha_pago ? formatDateTime(pago.fecha_pago) : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground max-w-xs truncate text-xs">
+                                                            {pago.observaciones || '-'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {pago.estado === 'pendiente' && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1 px-2 text-xs text-green-700 hover:text-green-800 dark:text-green-400"
+                                                                    onClick={() =>
+                                                                        router.post(
+                                                                            validarPago({ server: server.id, pago: pago.id }).url,
+                                                                            {},
+                                                                            { preserveScroll: true },
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <BadgeCheckIcon className="size-3.5" />
+                                                                    Validar
+                                                                </Button>
+                                                            )}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AprobarServidorRequest;
+use App\Models\PagoMensual;
 use App\Models\Server;
 use App\Notifications\ServidorAprobadoClienteNotification;
 use App\Notifications\ServidorRechazadoClienteNotification;
@@ -102,9 +103,24 @@ class ClientServerApprovalController extends Controller
             }
         }
 
+        $monto = round((float) $server->costo_diario * 30, 2);
+        $esTarjeta = $validated['medio_pago'] === 'tarjeta_credito';
+
+        /** Pre-bill 30 days of active time to cover the first month already paid. */
         $server->update([
             'estado' => 'pending',
             'token_aprobacion' => null,
+            'billed_active_ms' => 30 * 24 * 60 * 60 * 1000,
+        ]);
+
+        PagoMensual::create([
+            'server_id' => $server->id,
+            'anio' => now()->year,
+            'mes' => now()->month,
+            'monto' => $monto,
+            'estado' => $esTarjeta ? 'pagado' : 'pendiente',
+            'fecha_pago' => $esTarjeta ? now() : null,
+            'observaciones' => 'Primer mes — '.($esTarjeta ? 'pago con tarjeta de credito.' : 'pendiente de confirmacion por transferencia bancaria.'),
         ]);
 
         activity('servidores')

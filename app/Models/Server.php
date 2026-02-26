@@ -34,6 +34,7 @@ class Server extends Model
         'first_activated_at',
         'latest_release',
         'active_ms',
+        'billed_active_ms',
         'created_by',
         'token_aprobacion',
     ];
@@ -44,6 +45,7 @@ class Server extends Model
             'clave_privada' => 'encrypted',
             'costo_diario' => 'decimal:4',
             'active_ms' => 'integer',
+            'billed_active_ms' => 'integer',
             'latest_release' => 'datetime',
         ];
     }
