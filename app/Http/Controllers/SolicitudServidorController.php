@@ -70,8 +70,12 @@ class SolicitudServidorController extends Controller
         }
 
         $ipAddress = sprintf('10.%d.%d.%d', rand(0, 255), rand(0, 255), rand(1, 254));
+        $monto = round($costoDiario * 30, 2);
 
-        Server::create([
+        /** Solicitud was pre-paid by card via MercadoPago at request time. */
+        $prePagada = ! empty($solicitudServidor->mp_payment_id);
+
+        $serverData = [
             'nombre' => $solicitudServidor->nombre,
             'client_id' => $solicitudServidor->client_id,
             'region_id' => $solicitudServidor->region_id,
@@ -83,11 +87,40 @@ class SolicitudServidorController extends Controller
             'disco_tipo' => $solicitudServidor->disco_tipo,
             'conexion' => $solicitudServidor->conexion,
             'clave_privada' => $clavePrivada,
-            'estado' => 'pending',
             'costo_diario' => $costoDiario,
             'ip_address' => $ipAddress,
             'created_by' => auth()->id(),
-        ]);
+        ];
+
+        if ($prePagada) {
+            /** Card payment already processed — server is pre-billed for 30 days. */
+            $server = Server::create(array_merge($serverData, [
+                'estado' => 'pending',
+                'billed_active_ms' => 30 * 24 * 60 * 60 * 1000,
+            ]));
+
+            PagoMensual::create([
+                'server_id' => $server->id,
+                'anio' => now()->year,
+                'mes' => now()->month,
+                'monto' => $monto,
+                'estado' => 'pagado',
+                'fecha_pago' => now(),
+                'observaciones' => 'Primer mes — pago con tarjeta de credito al solicitar el servidor.',
+            ]);
+        } else {
+            /** Bank transfer — send server to client for review and payment confirmation. */
+            $tokenAprobacion = Str::random(64);
+
+            $server = Server::create(array_merge($serverData, [
+                'estado' => 'pendiente_aprobacion',
+                'token_aprobacion' => $tokenAprobacion,
+            ]));
+
+            $server->load(['region', 'operatingSystem', 'instanceType']);
+            $client = Client::find($solicitudServidor->client_id);
+            $client?->notify(new ServidorPendienteAprobacionNotification($server));
+        }
 
         $solicitudServidor->update([
             'estado' => 'aprobada',
@@ -95,7 +128,11 @@ class SolicitudServidorController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return back()->with('success', 'Solicitud aprobada y servidor creado correctamente.');
+        $mensaje = $prePagada
+            ? 'Solicitud aprobada. El servidor ha sido configurado con el pago ya realizado.'
+            : 'Solicitud aprobada. Se ha notificado al cliente para que confirme el pago y apruebe el servidor.';
+
+        return back()->with('success', $mensaje);
     }
 
     public function reject(Request $request, SolicitudServidor $solicitudServidor): RedirectResponse

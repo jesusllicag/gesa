@@ -3,9 +3,13 @@
 use App\Models\Image;
 use App\Models\InstanceType;
 use App\Models\OperatingSystem;
+use App\Models\PagoMensual;
 use App\Models\Region;
+use App\Models\Server;
 use App\Models\SolicitudServidor;
 use App\Models\User;
+use App\Notifications\ServidorPendienteAprobacionNotification;
+use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -63,12 +67,15 @@ describe('index', function () {
 });
 
 describe('approve', function () {
-    it('can approve a pending solicitud', function () {
+    it('creates server in pendiente_aprobacion and notifies client when solicitud has no card payment', function () {
+        Notification::fake();
+
         $solicitud = SolicitudServidor::factory()->pendiente()->create([
             'region_id' => $this->region->id,
             'operating_system_id' => $this->os->id,
             'image_id' => $this->image->id,
             'instance_type_id' => $this->instanceType->id,
+            'mp_payment_id' => null,
         ]);
 
         $this->actingAs($this->user)
@@ -80,11 +87,44 @@ describe('approve', function () {
         expect($solicitud->reviewed_by)->toBe($this->user->id);
         expect($solicitud->reviewed_at)->not->toBeNull();
 
-        $this->assertDatabaseHas('servers', [
-            'nombre' => $solicitud->nombre,
-            'client_id' => $solicitud->client_id,
-            'estado' => 'pending',
+        $server = Server::where('nombre', $solicitud->nombre)->first();
+        expect($server)->not->toBeNull();
+        expect($server->estado)->toBe('pendiente_aprobacion');
+        expect($server->token_aprobacion)->not->toBeNull();
+        expect($server->billed_active_ms)->toBe(0);
+
+        Notification::assertSentTo($solicitud->client, ServidorPendienteAprobacionNotification::class);
+    });
+
+    it('creates server in pending with 30 days pre-billed when solicitud was paid by card', function () {
+        Notification::fake();
+
+        $solicitud = SolicitudServidor::factory()->pendiente()->create([
+            'region_id' => $this->region->id,
+            'operating_system_id' => $this->os->id,
+            'image_id' => $this->image->id,
+            'instance_type_id' => $this->instanceType->id,
+            'costo_diario_estimado' => 2.00,
+            'mp_payment_id' => '123456789',
+            'mp_payment_status' => 'approved',
         ]);
+
+        $this->actingAs($this->user)
+            ->post("/admin/solicitudes/{$solicitud->id}/approve")
+            ->assertRedirect();
+
+        $server = Server::where('nombre', $solicitud->nombre)->first();
+        expect($server)->not->toBeNull();
+        expect($server->estado)->toBe('pending');
+        expect($server->token_aprobacion)->toBeNull();
+        expect($server->billed_active_ms)->toBe(30 * 24 * 60 * 60 * 1000);
+
+        $pago = PagoMensual::where('server_id', $server->id)->first();
+        expect($pago)->not->toBeNull();
+        expect($pago->estado)->toBe('pagado');
+        expect($pago->fecha_pago)->not->toBeNull();
+
+        Notification::assertNothingSent();
     });
 
     it('cannot approve an already approved solicitud', function () {

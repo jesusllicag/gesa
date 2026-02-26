@@ -16,7 +16,7 @@ beforeEach(function () {
 
 function makeClientServer(Client $client, array $attrs = []): Server
 {
-    $region = Region::factory()->create();
+    $region = Region::factory()->create(['codigo' => fake()->unique()->regexify('[a-z]{2}-[a-z]{4,6}-[0-9]')]);
     $os = OperatingSystem::factory()->create();
     $image = Image::factory()->create(['operating_system_id' => $os->id]);
     $instanceType = InstanceType::factory()->create();
@@ -248,8 +248,8 @@ describe('dashboard deuda_pendiente', function () {
 // APPROVAL: billed_active_ms set to 30 days
 // ──────────────────────────────
 
-describe('server approval sets billed_active_ms', function () {
-    it('sets billed_active_ms to 30 days on transferencia approval', function () {
+describe('server approval billing', function () {
+    it('does not pre-bill billed_active_ms on transferencia approval', function () {
         $token = \Illuminate\Support\Str::random(64);
         $server = makeClientServer($this->client, [
             'estado' => 'pendiente_aprobacion',
@@ -267,16 +267,37 @@ describe('server approval sets billed_active_ms', function () {
             ->assertRedirect(route('client.dashboard'));
 
         $fresh = $server->fresh();
-        expect($fresh->billed_active_ms)->toBe(30 * 24 * 60 * 60 * 1000);
+        expect($fresh->billed_active_ms)->toBe(0);
         expect($fresh->estado)->toBe('pending');
 
         $pago = PagoMensual::where('server_id', $server->id)->first();
         expect($pago)->not->toBeNull();
-        expect($pago->anio)->toBe(now()->year);
-        expect($pago->mes)->toBe(now()->month);
         expect((float) $pago->monto)->toBe(60.0); // 2.00 * 30
         expect($pago->estado)->toBe('pendiente');
         expect($pago->fecha_pago)->toBeNull();
+    });
+
+    it('credits billed_active_ms when admin validates a transferencia payment', function () {
+        $admin = User::factory()->create();
+        $server = makeClientServer($this->client, [
+            'costo_diario' => 2.00,
+            'billed_active_ms' => 0,
+        ]);
+
+        $pago = PagoMensual::create([
+            'server_id' => $server->id,
+            'anio' => now()->year,
+            'mes' => now()->month,
+            'monto' => 60.00, // 30 days * $2
+            'estado' => 'pendiente',
+        ]);
+
+        $this->actingAs($admin)
+            ->post("/admin/activos/{$server->id}/pagos/{$pago->id}/validar")
+            ->assertRedirect();
+
+        expect($server->fresh()->billed_active_ms)->toBe(30 * 24 * 60 * 60 * 1000);
+        expect($pago->fresh()->estado)->toBe('pagado');
     });
 });
 

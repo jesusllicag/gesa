@@ -298,6 +298,52 @@
     </div>
     @endif
 
+    {{-- Historial de Pagos --}}
+    <div class="section no-break">
+        <div class="section-title">Historial de Pagos</div>
+        @if ($server->pagosMensuales->isEmpty())
+            <p class="empty-state">Sin registros de pagos.</p>
+        @else
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Periodo</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th>Fecha de Pago</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($server->pagosMensuales as $pago)
+                        @php
+                            $meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                            $estadoClass = match($pago->estado) {
+                                'pagado' => 'pago-pagado',
+                                'pendiente' => 'pago-pendiente',
+                                'vencido' => 'pago-vencido',
+                                default => '',
+                            };
+                            $estadoLabel = match($pago->estado) {
+                                'pagado' => 'Pagado',
+                                'pendiente' => 'Pendiente',
+                                'vencido' => 'Vencido',
+                                default => $pago->estado,
+                            };
+                        @endphp
+                        <tr>
+                            <td class="mono">{{ $meses[$pago->mes] ?? $pago->mes }} {{ $pago->anio }}</td>
+                            <td class="mono">${{ number_format((float)$pago->monto, 2) }}</td>
+                            <td class="{{ $estadoClass }}">{{ $estadoLabel }}</td>
+                            <td>{{ $pago->fecha_pago ? \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y') : '-' }}</td>
+                            <td style="color: #6b7280;">{{ $pago->observaciones ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+
     {{-- Footer --}}
     <div class="footer">
         <span>GESA &mdash; {{ $server->nombre }}</span>

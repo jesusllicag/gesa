@@ -14,6 +14,7 @@ use App\Http\Controllers\Client\ClientServerPdfController;
 use App\Http\Controllers\Client\ClientSolicitudController;
 use App\Http\Controllers\Client\PagoTarjetaController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ServerController;
 use App\Http\Controllers\Settings\PolicyController;
 use App\Http\Controllers\SolicitudServidorController;
@@ -41,9 +42,7 @@ Route::prefix('admin')->group(function () {
     });
 
     Route::middleware(['auth', 'verified', 'password.changed'])->group(function () {
-        Route::get('dashboard', function () {
-            return Inertia::render('dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Users
         Route::get('users', [UserController::class, 'index'])->name('users.index');

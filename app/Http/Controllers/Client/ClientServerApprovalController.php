@@ -106,11 +106,10 @@ class ClientServerApprovalController extends Controller
         $monto = round((float) $server->costo_diario * 30, 2);
         $esTarjeta = $validated['medio_pago'] === 'tarjeta_credito';
 
-        /** Pre-bill 30 days of active time to cover the first month already paid. */
         $server->update([
             'estado' => 'pending',
             'token_aprobacion' => null,
-            'billed_active_ms' => 30 * 24 * 60 * 60 * 1000,
+            'billed_active_ms' => $esTarjeta ? 30 * 24 * 60 * 60 * 1000 : 0,
         ]);
 
         PagoMensual::create([
