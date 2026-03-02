@@ -59,6 +59,11 @@ class Client extends Authenticatable
     /**
      * Get the user who created this client.
      */
+    public function getNameAttribute(): string
+    {
+        return $this->nombre;
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

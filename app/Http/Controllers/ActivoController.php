@@ -101,7 +101,7 @@ class ActivoController extends Controller
         $activities = Activity::query()
             ->where('subject_type', Server::class)
             ->where('subject_id', $server->id)
-            ->with('causer:id,name')
+            ->with('causer')
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
@@ -204,7 +204,7 @@ class ActivoController extends Controller
         $activities = Activity::query()
             ->where('subject_type', Server::class)
             ->where('subject_id', $server->id)
-            ->with('causer:id,name')
+            ->with('causer')
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();

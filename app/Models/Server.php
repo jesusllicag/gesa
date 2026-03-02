@@ -42,6 +42,7 @@ class Server extends Model
     protected function casts(): array
     {
         return [
+            'client_id' => 'integer',
             'clave_privada' => 'encrypted',
             'costo_diario' => 'decimal:4',
             'active_ms' => 'integer',

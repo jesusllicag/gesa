@@ -13,7 +13,9 @@ return new class extends Migration
         });
 
         Schema::table('pagos_mensuales', function (Blueprint $table) {
+            $table->dropForeign(['server_id']);
             $table->dropUnique(['server_id', 'anio', 'mes']);
+            $table->foreign('server_id')->references('id')->on('servers')->cascadeOnDelete();
             $table->unsignedBigInteger('created_by')->nullable()->change();
         });
     }
@@ -25,7 +27,9 @@ return new class extends Migration
         });
 
         Schema::table('pagos_mensuales', function (Blueprint $table) {
+            $table->dropForeign(['server_id']);
             $table->unique(['server_id', 'anio', 'mes']);
+            $table->foreign('server_id')->references('id')->on('servers')->cascadeOnDelete();
             $table->unsignedBigInteger('created_by')->nullable(false)->change();
         });
     }

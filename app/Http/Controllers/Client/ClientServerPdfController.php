@@ -16,7 +16,7 @@ class ClientServerPdfController extends Controller
         $client = auth('client')->user();
 
         abort_unless($server->client_id === $client->id, 404);
-        abort_unless($server->estado === 'running', 404);
+        abort_unless($server->estado === 'running', 403);
 
         $server->load([
             'client',
@@ -31,7 +31,7 @@ class ClientServerPdfController extends Controller
         $activities = Activity::query()
             ->where('subject_type', Server::class)
             ->where('subject_id', $server->id)
-            ->with('causer:id,name')
+            ->with('causer')
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();

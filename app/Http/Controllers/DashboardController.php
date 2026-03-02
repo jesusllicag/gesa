@@ -76,7 +76,7 @@ class DashboardController extends Controller
             ->where('estado', 'running')
             ->whereNotNull('client_id')
             ->whereNull('deleted_at')
-            ->selectRaw('client_id, SUM(CAST(costo_diario AS REAL) * 30) as costo_mensual')
+            ->selectRaw('client_id, SUM(CAST(costo_diario AS DECIMAL(10,4)) * 30) as costo_mensual')
             ->groupBy('client_id')
             ->pluck('costo_mensual', 'client_id');
 
