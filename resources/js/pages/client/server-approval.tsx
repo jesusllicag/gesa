@@ -226,18 +226,26 @@ export default function ServerApproval({ server, mercadopago_public_key }: Props
     };
 
     const handleApproveTransferencia = () => {
+        console.log('[ServerApproval] Aprobando servidor por transferencia bancaria:', server.nombre);
         setIsSubmitting(true);
         router.post(
             `/client/servers/${server.token_aprobacion}/approve`,
             { medio_pago: 'transferencia_bancaria' },
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    console.log('[ServerApproval] Servidor aprobado exitosamente (transferencia)');
+                },
+                onError: (errors) => {
+                    console.log('[ServerApproval] Error al aprobar servidor (transferencia):', errors);
+                },
                 onFinish: () => setIsSubmitting(false),
             }
         );
     };
 
     const handleApproveTarjeta = async () => {
+        console.log('[ServerApproval] Aprobando servidor por tarjeta de crédito:', server.nombre);
         setPaymentError(null);
         setIsSubmitting(true);
 
@@ -253,6 +261,8 @@ export default function ServerApproval({ server, mercadopago_public_key }: Props
                 identificationNumber: mpForm.identificationNumber,
             });
 
+            console.log('[ServerApproval] Token de tarjeta generado, enviando aprobación...');
+
             router.post(
                 `/client/servers/${server.token_aprobacion}/approve`,
                 {
@@ -267,26 +277,38 @@ export default function ServerApproval({ server, mercadopago_public_key }: Props
                 },
                 {
                     preserveScroll: true,
+                    onSuccess: () => {
+                        console.log('[ServerApproval] Servidor aprobado exitosamente (tarjeta)');
+                    },
                     onError: (errors) => {
+                        console.log('[ServerApproval] Error al aprobar servidor (tarjeta):', errors);
                         const paymentErr = (errors as Record<string, string>).payment;
                         setPaymentError(paymentErr ?? 'Error al procesar el pago.');
                     },
                     onFinish: () => setIsSubmitting(false),
                 }
             );
-        } catch {
+        } catch (e) {
+            console.log('[ServerApproval] Error al tokenizar tarjeta:', e);
             setPaymentError('Error al tokenizar la tarjeta. Verifica los datos ingresados.');
             setIsSubmitting(false);
         }
     };
 
     const handleReject = () => {
+        console.log('[ServerApproval] Rechazando servidor:', server.nombre);
         setIsSubmitting(true);
         router.post(
             `/client/servers/${server.token_aprobacion}/reject`,
             {},
             {
                 preserveScroll: true,
+                onSuccess: () => {
+                    console.log('[ServerApproval] Servidor rechazado exitosamente');
+                },
+                onError: (errors) => {
+                    console.log('[ServerApproval] Error al rechazar servidor:', errors);
+                },
                 onFinish: () => setIsSubmitting(false),
             }
         );

@@ -19,6 +19,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { download as downloadServerPdf } from '@/actions/App/Http/Controllers/Client/ClientServerPdfController';
 import { pagarMensualidad, pagarTransferencia } from '@/actions/App/Http/Controllers/Client/ClientServerController';
 import { ClientPortalHeader } from '@/components/client-portal-header';
+import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { CostPreview } from '@/components/cost-preview';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -311,6 +313,7 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
     }, [createForm.instance_type_id, createForm.ram_gb, createForm.disco_gb, createForm.disco_tipo, createForm.conexion, instanceTypes]);
 
     const handleSubmitSolicitud = () => {
+        console.log('[Solicitud] Enviando solicitud de servidor...', createForm);
         setIsSubmitting(true);
         router.post(
             '/client/solicitudes',
@@ -324,8 +327,18 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
             {
                 preserveScroll: true,
                 onSuccess: () => {
+                    console.log('[Solicitud] Solicitud creada exitosamente');
+                    toast.success('Solicitud enviada', {
+                        description: 'Tu solicitud de servidor fue creada correctamente. Un administrador la revisará pronto.',
+                        style: { backgroundColor: '#16a34a', color: '#fff', border: 'none' },
+                        classNames: { description: 'text-white!' },
+                        position: 'bottom-right',
+                    });
                     setIsCreateDialogOpen(false);
                     setCreateForm({ ...initialCreateForm });
+                },
+                onError: (errors) => {
+                    console.log('[Solicitud] Error al crear solicitud:', errors);
                 },
                 onFinish: () => setIsSubmitting(false),
             }
@@ -745,6 +758,7 @@ export default function ClientDashboard({ servers, solicitudes, operatingSystems
     return (
         <>
             <Head title="Dashboard - Portal de Clientes" />
+            <Toaster position="bottom-right" />
 
             <div className="bg-background min-h-screen">
                 <ClientPortalHeader>
